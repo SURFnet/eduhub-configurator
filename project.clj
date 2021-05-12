@@ -19,16 +19,17 @@
   :license {:name "GNU Affero General Public License"
             :url  "https://www.gnu.org/licenses/agpl-3.0.html"}
   :dependencies [[ch.qos.logback/logback-classic "1.2.3"]
+                 [clj-commons/clj-yaml "0.7.106"]
                  [compojure "1.6.2"]
                  [environ "1.2.0"]
                  [hiccup "1.0.5"]
-                 [org.clojure/clojure "1.10.2"]
-                 [org.clojure/data.json "1.0.0"]
+                 [org.clojure/clojure "1.10.3"]
+                 [org.clojure/data.json "2.2.3"]
                  [org.clojure/data.xml "0.0.8"]
                  [org.clojure/tools.logging "1.1.0"]
-                 [ring "1.8.2"]
+                 [ring "1.9.3"]
                  [ring/ring-defaults "0.3.2"]
-                 [ring/ring-jetty-adapter "1.8.2"]]
+                 [ring/ring-jetty-adapter "1.9.3"]]
   :main ^:skip-aot ooapi-gateway-configurator.core
   :target-path "target/%s"
   :profiles {:uberjar {:aot :all}
