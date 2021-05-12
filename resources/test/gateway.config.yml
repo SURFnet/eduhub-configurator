@@ -1,0 +1,173 @@
+http: # remove http section in production environmennt
+  port: 8080
+https:
+  port: 4444
+  tls:
+    default: # replace with real certificate in prod environment
+      key: "config/testServer.key"
+      cert: "config/testServer.crt"
+admin:
+  port: 9876
+  host: localhost
+apiEndpoints:
+  api:
+    # all matching paths should be specified including any template
+    # params as used in the ooapi spec
+    paths:
+       - '/'
+       - '/academic-sessions'
+       - '/academic-sessions/:academicSessionId'
+       - '/academic-sessions/:academicSessionId/offerings'
+       - '/associations/:associationId'
+       - '/buildings'
+       - '/buildings/:buildingId'
+       - '/components/:componentId'
+       - '/components/:componentId/offerings'
+       - '/courses'
+       - '/courses/:courseId'
+       - '/courses/:courseId/components'
+       - '/courses/:courseId/offerings'
+       - '/news-feeds'
+       - '/news-feeds/:newsFeedId'
+       - '/news-feeds/:newsFeedId/news-items'
+       - '/news-items/:newsItemId'
+       - '/offerings/:offeringId'
+       - '/offerings/:offeringId/associations'
+       - '/organizations'
+       - '/organizations/:organizationId'
+       - '/organizations/:organizationId/components'
+       - '/organizations/:organizationId/courses'
+       - '/organizations/:organizationId/programs'
+       - '/persons'
+       - '/persons/:personId'
+       - '/persons/:personId/associations'
+       - '/programs'
+       - '/programs/:programId'
+       - '/programs/:programId/courses'
+       - '/programs/:programId/offerings'
+       - '/rooms'
+       - '/rooms/:roomId'
+serviceEndpoints:
+  TestBackend:
+    url: '${OOAPI_TEST_BACKEND_URL:-http://localhost:8082}'
+    proxyOptions:
+      auth: fred:wilma
+  OtherTestBackend:
+    url: '${OOAPI_OTHER_TEST_BACKEND_URL:-http://localhost:8083/ooapi/}'
+    proxyOptions:
+      oauth2:
+        clientCredentials:
+          tokenEndpoint:
+            url: '${MOCK_OAUTH_TOKEN_URL:-http://localhost:8084/mock/token}'
+            params:
+              grant_type: client_credentials
+              client_id: fred
+              client_secret: wilma
+  BadCredentialsOathTestBackend:
+    url: '${OOAPI_OTHER_TEST_BACKEND_URL:-http://localhost:8083/ooapi/}'
+    proxyOptions:
+      oauth2:
+        clientCredentials:
+          tokenEndpoint:
+            url: '${MOCK_OAUTH_TOKEN_URL:-http://localhost:8084/mock/token}'
+            params:
+              grant_type: client_credentials
+              client_id: dino
+  BadUrlOathTestBackend:
+    url: '${OOAPI_OTHER_TEST_BACKEND_URL:-http://localhost:8083/ooapi/}'
+    proxyOptions:
+      oauth2:
+        clientCredentials:
+          tokenEndpoint:
+            url: 'http://dummy:9999/'
+            params:
+              grant_type: client_credentials
+              client_id: fred
+              client_secret: wilma
+  EchoBackend:
+    url: '${OOAPI_ECHO_BACKEND_URL:-http://localhost:8085/}'
+policies:
+  - basic-auth
+  - cors
+  - expression
+  - key-auth
+  - log
+  - oauth2
+  - proxy
+  - rate-limit
+  - openapi-validator
+  - gatekeeper
+  - request-transformer
+  - response-transformer
+  - aggregation
+pipelines:
+  test:
+    apiEndpoints:
+      - api
+    policies:
+      - log:
+          - action:
+              message: ${req.egContext.requestID} ${req.method} ${req.originalUrl}
+
+      - rate-limit:
+          - action:
+              max: ${RATE_LIMIT_MAX:-10}
+              windowMs: ${RATE_LIMIT_WINDOW_MS:-1000}
+              delayAfter: ${RATE_LIMIT_DELAY_AFTER:-5}
+              delayMs: ${RATE_LIMIT_DELAY_MS:-500}
+
+
+      - gatekeeper:
+          - action:
+              acls:
+                - app: fred
+                  endpoints:
+                    - endpoint: TestBackend
+                      paths: ['/', '/courses', '/courses/:id']
+                    - endpoint: OtherTestBackend
+                      paths: ['/', '/courses', '/courses/:id']
+                - app: barney
+                  endpoints:
+                    - endpoint: OtherTestBackend
+                      paths: ['/', '/courses', '/courses/:id']
+                    - endpoint: BadCredentialsOathTestBackend
+                      paths: ['/']
+                    - endpoint: BadUrlOathTestBackend
+                      paths: ['/']
+                - app: bubbles
+                  endpoints:
+                    - endpoint: EchoBackend
+                      paths: ['/']
+
+      - response-transformer:
+          - action:
+              headers:
+                add:
+                  # note: literal header values should be quoted twice
+                  # see https://www.express-gateway.io/docs/policies/response-transformer/
+                  'X-XSS-Protection': "'1; mode-block'"
+                  'Strict-Transport-Security': "'max-age=31536000; includeSubDomains; preload'"
+                  'X-Frame-Options': "'SAMEORIGIN'"
+                  'X-Content-Type-Options': "'nosniff'"
+                  # note: double escaping because of YAML parsing
+                  'Content-Security-Policy': "'default-src \\'self\\''"
+                  'Access-Control-Allow-Origin': "'*.surf.nl'"
+                  'Referrer-Policy': "'no-referrer-when-downgrade'"
+
+      - openapi-validator:
+          - action:
+              apiSpec: 'ooapiv4.json'
+              validateRequests: true
+              validateResponses: true
+
+      - aggregation:
+          - action:
+              noEnvelopIfAnyHeaders:
+                'X-Validate-Response': 'true'
+              keepRequestHeaders:
+                - 'accept-language'
+                - 'accept'
+                - 'x-validate-response' # needed for resp validation
+              keepResponseHeaders:
+                - 'content-type'
+                - 'content-length'

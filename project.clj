@@ -15,9 +15,10 @@
 
 (defproject ooapi-gateway-configurator "0.1.0-SNAPSHOT"
   :description "Configure the Surf OOAPI Gateway"
-  :url "http://example.com/FIXME"
+
   :license {:name "GNU Affero General Public License"
             :url  "https://www.gnu.org/licenses/agpl-3.0.html"}
+
   :dependencies [[ch.qos.logback/logback-classic "1.2.3"]
                  [clj-commons/clj-yaml "0.7.106"]
                  [compojure "1.6.2"]
@@ -29,9 +30,14 @@
                  [org.clojure/tools.logging "1.1.0"]
                  [ring "1.9.3"]
                  [ring/ring-defaults "0.3.2"]
-                 [ring/ring-jetty-adapter "1.9.3"]]
+                 [ring/ring-jetty-adapter "1.9.3"]
+                 [ring/ring-mock "0.4.0"]]
+
   :main ^:skip-aot ooapi-gateway-configurator.core
+
   :target-path "target/%s"
+
   :profiles {:uberjar {:aot :all}
              :dev     {:source-paths ["dev"]}}
+
   :repl-options {:init-ns user})
