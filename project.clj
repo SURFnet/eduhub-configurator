@@ -28,11 +28,12 @@
                  [org.clojure/data.json "2.2.3"]
                  [org.clojure/data.xml "0.0.8"]
                  [org.clojure/tools.logging "1.1.0"]
+                 [cheshire "5.10.0"] ;; minimum version 5.9.0 is necessary for ring-oauth2
                  [ring "1.9.3"]
                  [ring/ring-defaults "0.3.2"]
                  [ring/ring-jetty-adapter "1.9.3"]
-                 [ring/ring-mock "0.4.0"]]
-
+                 [ring/ring-mock "0.4.0"]
+                 [ring-oauth2 "0.1.5"]]
   :main ^:skip-aot ooapi-gateway-configurator.core
 
   :target-path "target/%s"

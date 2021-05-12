@@ -9,24 +9,31 @@
 (def default-env
   "settings that can be changed from the environment or java
   properties. Values are all strings or nil (unset)."
-  {:http-host           "localhost"
-   :http-port           "8080"
-
+  {:http-host             "localhost"
+   :http-port             "8080"
+   :auth-authorize-uri    nil
+   :auth-access-token-uri nil
+   :auth-client-id        nil
+   :auth-client-secret    nil
    ;; TODO remove this
    :gateway-config-yaml "resources/test/gateway.config.yml"})
 
 (defn get-env
-  [env k]
-  (or (get env k)
-      (get default-env k)))
+  [env k & {:keys [required?] :as opts}]
+  (if-some [v (get env k (get default-env k))]
+    v
+    (when required?
+      (throw (ex-info (str "Required configuration option " k " was not provided")
+                      {:key k
+                       :opts opts})))))
 
 (defn get-str
-  [env k]
-  (get-env env k))
+  [env k & opts]
+  (apply get-env env k opts))
 
 (defn get-int
-  [env k]
-  (when-let [s (get-env env k)]
+  [env k & opts]
+  (when-let [s (apply get-env env k opts)]
     (try
       (Integer/parseInt s)
       (catch NumberFormatException e
@@ -46,7 +53,11 @@
   {:jetty {:host  (get-str env :http-host)
            :port  (get-int env :http-port)
            :join? false}
-   :web   {:institutions-yaml-fname (get-file env :gateway-config-yaml :existing true)}})
+   :web   {:institutions-yaml-fname (get-file env :gateway-config-yaml :existing true)}
+   :auth  {:authorize-uri (get-str env :auth-authorize-uri)
+           :access-token-uri (get-str env :auth-access-token-uri)
+           :client-id (get-str env :auth-client-id)
+           :client-secret (get-str env :auth-client-secret)}})
 
 (defonce server-atom (atom nil))
 
@@ -65,7 +76,7 @@
   [config]
   (stop!)
   (reset! server-atom
-          (start-webserver config (web/mk-app (:web config)))))
+          (start-webserver config (web/mk-app config))))
 
 (defn -main
   [& _]

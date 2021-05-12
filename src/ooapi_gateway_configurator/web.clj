@@ -2,6 +2,7 @@
   (:require [compojure.core :refer [defroutes GET]]
             [compojure.route :refer [not-found resources]]
             [hiccup.page :refer [html5]]
+            [ooapi-gateway-configurator.auth :as auth]
             [ooapi-gateway-configurator.institutions :as institutions]
             [ring.middleware.defaults :refer [site-defaults wrap-defaults]]
             [ring.util.codec :refer [url-encode]]))
@@ -9,7 +10,7 @@
 (def title "OOAPI Gateway Configurator")
 
 (defn layout
-  [body]
+  [body request]
   (html5
    {:lang "en"}
    [:head
@@ -17,7 +18,10 @@
     [:link {:href "/screen.css" :rel "stylesheet"}]
     [:meta {:name "viewport", :content "width=device-width"}]]
    [:body
-    [:header [:h1 title]]
+    [:header [:h1 title]
+     (if-let [token (auth/token request)]
+       [:pre (prn-str (auth/decode-token token))]
+       [:a {:href "/oauth2/conext"} "Log in"])]
     [:main body]]))
 
 (defn ->html
@@ -65,19 +69,20 @@
    (->html institution)])
 
 (defroutes handler
-  (GET "/" []
+  (GET "/" r
        (-> (main-page)
-           (layout)))
+           (layout r)))
   (GET "/institutions/:id" {:keys [institutions]
-                            {:keys [id]} :params}
+                            {:keys [id]} :params
+                            :as r}
        (-> institutions
            (get (keyword id))
            (institution-page id)
-           (layout)))
-  (GET "/institutions" {:keys [institutions]}
+           (layout r)))
+  (GET "/institutions" {:keys [institutions] :as r}
        (-> institutions
            (institutions-page)
-           (layout)))
+           (layout r)))
   (resources "/" {:root "public"})
   (not-found "nothing here.."))
 
@@ -87,7 +92,9 @@
                 (institutions/fetch institutions-yaml-fname)))))
 
 (defn mk-app
-  [{:keys [institutions-yaml-fname]}]
-  (-> handler
-      (wrap-institutions institutions-yaml-fname)
-      (wrap-defaults site-defaults)))
+  [config]
+  (-> #'handler
+      (auth/wrap-authentication (:auth config))
+      (wrap-defaults (-> site-defaults
+                         (assoc-in [:session :cookie-attrs :same-site] :lax)))
+      (wrap-institutions (get-in config [:web :institutions-yaml-fname]))))
