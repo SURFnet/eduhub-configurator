@@ -1,7 +1,6 @@
 (ns ooapi-gateway-configurator.html
   (:require [hiccup.page :refer [html5]]
-            [ooapi-gateway-configurator.auth :as auth]
-            [ring.middleware.anti-forgery :refer [*anti-forgery-token*]]))
+            [ooapi-gateway-configurator.auth :as auth]))
 
 (def title "OOAPI Gateway Configurator")
 
@@ -16,18 +15,9 @@
    [:body
     [:header
      [:h1 [:a {:href "/"} title]]
-     [:div.login
-      (if-let [token (auth/token req)]
-        [:pre (prn-str (auth/decode-token token))]
-        [:a {:href "/oauth2/conext", :class "button"} "Log in"])]
+     (auth/auth-component req)
      (when flash [:p.flash flash])]
     [:main body]]))
-
-(defn anti-forgery-field
-  []
-  [:input {:type "hidden"
-           :name "__anti-forgery-token"
-           :value *anti-forgery-token*}])
 
 (defn confirm-js [action resource id]
   (str "return confirm("

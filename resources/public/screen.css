@@ -29,6 +29,7 @@ header .login .button {
     color: #008;
     background: #ccf;
     border: solid 1px #aaf;
+    font-weight: inherit;
 }
 
 header .login .button:hover {

@@ -1,5 +1,5 @@
 (ns ooapi-gateway-configurator.web
-  (:require [compojure.core :refer [defroutes GET]]
+  (:require [compojure.core :refer [routes GET wrap-routes]]
             [compojure.route :refer [not-found resources]]
             [ooapi-gateway-configurator.auth :as auth]
             [ooapi-gateway-configurator.html :refer [layout]]
@@ -12,18 +12,22 @@
    [:li [:a {:href (institutions/path)}
          "Institutions"]]])
 
-(defroutes handler
-  (GET "/" req
-       (layout (main-page) req))
+(defn mk-handler
+  [config]
+  (routes (GET "/" req
+               (layout (main-page) req))
 
-  institutions/handler
+          (-> institutions/handler
+              (wrap-routes auth/wrap-member-of (get-in config [:auth :group-ids])))
 
-  (resources "/" {:root "public"})
-  (not-found "nothing here.."))
+          auth/logout-handler
+          (resources "/" {:root "public"})
+          (not-found "nothing here..")))
 
 (defn mk-app
   [config]
-  (-> #'handler
+  (-> config
+      (mk-handler)
       (auth/wrap-authentication (:auth config))
       (wrap-defaults (-> config
                          (get :site-defaults site-defaults)

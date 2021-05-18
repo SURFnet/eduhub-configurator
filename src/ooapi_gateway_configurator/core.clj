@@ -4,7 +4,8 @@
             [clojure.tools.logging :as log]
             [environ.core :as environ]
             [ooapi-gateway-configurator.web :as web]
-            [ring.adapter.jetty :refer [run-jetty]]))
+            [ring.adapter.jetty :refer [run-jetty]]
+            [clojure.string :as string]))
 
 (def default-env
   "Settings that can be changed from the environment or java
@@ -15,8 +16,9 @@
    :auth-access-token-uri nil
    :auth-client-id        nil
    :auth-client-secret    nil
+   :auth-user-info-uri    nil
    ;; TODO remove this
-   :gateway-config-yaml "resources/test/gateway.config.yml"})
+   :gateway-config-yaml   "resources/test/gateway.config.yml"})
 
 (defn get-env
   [env k & {:keys [required?] :as opts}]
@@ -24,12 +26,17 @@
     v
     (when required?
       (throw (ex-info (str "Required configuration option " k " was not provided")
-                      {:key k
+                      {:key  k
                        :opts opts})))))
 
 (defn get-str
   [env k & opts]
   (apply get-env env k opts))
+
+(defn get-set
+  [env k & opts]
+  (when-let [s (apply get-env env k opts)]
+    (set (string/split s #"\w*,\w*"))))
 
 (defn get-int
   [env k & opts]
@@ -54,10 +61,12 @@
            :port  (get-int env :http-port)
            :join? false}
    :web   {:institutions-yaml-fname (get-file env :gateway-config-yaml :existing true)}
-   :auth  {:authorize-uri    (get-str env :auth-authorize-uri)
-           :access-token-uri (get-str env :auth-access-token-uri)
-           :client-id        (get-str env :auth-client-id)
-           :client-secret    (get-str env :auth-client-secret)}})
+   :auth  {:authorize-uri    (get-str env :auth-authorize-uri :required? true)
+           :access-token-uri (get-str env :auth-access-token-uri :required? true)
+           :user-info-uri    (get-str env :auth-user-info-uri :required? true)
+           :client-id        (get-str env :auth-client-id :required? true)
+           :client-secret    (get-str env :auth-client-secret :required? true)
+           :group-ids        (get-set env :auth-conext-group-ids :required? true)}})
 
 (defonce server-atom (atom nil))
 

@@ -3,7 +3,8 @@
             [clojure.string :as s]
             [compojure.core :refer [defroutes GET POST]]
             [compojure.response :refer [render]]
-            [ooapi-gateway-configurator.html :refer [anti-forgery-field confirm-js layout]]
+            [ooapi-gateway-configurator.html :refer [confirm-js layout]]
+            [ooapi-gateway-configurator.anti-forgery :refer [anti-forgery-field]]
             [ooapi-gateway-configurator.http :as http]
             [ring.util.codec :refer [url-encode]]
             [ring.util.response :refer [redirect status]]))
