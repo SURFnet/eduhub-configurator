@@ -39,6 +39,7 @@
   :target-path "target/%s"
 
   :profiles {:uberjar {:aot :all}
-             :dev     {:source-paths ["dev"]}}
+             :dev     {:source-paths ["dev"]
+                       :dependencies [[org.clojure/tools.namespace "1.1.0"]]}}
 
   :repl-options {:init-ns user})
