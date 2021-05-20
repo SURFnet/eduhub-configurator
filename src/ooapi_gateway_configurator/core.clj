@@ -7,7 +7,7 @@
             [ring.adapter.jetty :refer [run-jetty]]))
 
 (def default-env
-  "settings that can be changed from the environment or java
+  "Settings that can be changed from the environment or java
   properties. Values are all strings or nil (unset)."
   {:http-host             "localhost"
    :http-port             "8080"
@@ -36,7 +36,7 @@
   (when-let [s (apply get-env env k opts)]
     (try
       (Integer/parseInt s)
-      (catch NumberFormatException e
+      (catch NumberFormatException _
         (throw (ex-info (str "Configuration option " k " should be a valid integer")
                         {:option k :value s}))))))
 
@@ -54,10 +54,10 @@
            :port  (get-int env :http-port)
            :join? false}
    :web   {:institutions-yaml-fname (get-file env :gateway-config-yaml :existing true)}
-   :auth  {:authorize-uri (get-str env :auth-authorize-uri)
+   :auth  {:authorize-uri    (get-str env :auth-authorize-uri)
            :access-token-uri (get-str env :auth-access-token-uri)
-           :client-id (get-str env :auth-client-id)
-           :client-secret (get-str env :auth-client-secret)}})
+           :client-id        (get-str env :auth-client-id)
+           :client-secret    (get-str env :auth-client-secret)}})
 
 (defonce server-atom (atom nil))
 

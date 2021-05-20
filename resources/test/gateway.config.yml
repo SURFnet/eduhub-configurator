@@ -48,44 +48,26 @@ apiEndpoints:
        - '/rooms'
        - '/rooms/:roomId'
 serviceEndpoints:
-  TestBackend:
-    url: '${OOAPI_TEST_BACKEND_URL:-http://localhost:8082}'
+  BasicAuthBackend:
+    url: https://example.com/test-backend
     proxyOptions:
       auth: fred:wilma
-  OtherTestBackend:
-    url: '${OOAPI_OTHER_TEST_BACKEND_URL:-http://localhost:8083/ooapi/}'
+  Oauth2Backend:
+    url: https://example.com/other-test-backend
     proxyOptions:
       oauth2:
         clientCredentials:
           tokenEndpoint:
-            url: '${MOCK_OAUTH_TOKEN_URL:-http://localhost:8084/mock/token}'
+            url: http://localhost:8084/mock/token
             params:
               grant_type: client_credentials
               client_id: fred
               client_secret: wilma
-  BadCredentialsOathTestBackend:
-    url: '${OOAPI_OTHER_TEST_BACKEND_URL:-http://localhost:8083/ooapi/}'
+  ApiKeyBackend:
+    url: https://example.com/api-key-backend
     proxyOptions:
-      oauth2:
-        clientCredentials:
-          tokenEndpoint:
-            url: '${MOCK_OAUTH_TOKEN_URL:-http://localhost:8084/mock/token}'
-            params:
-              grant_type: client_credentials
-              client_id: dino
-  BadUrlOathTestBackend:
-    url: '${OOAPI_OTHER_TEST_BACKEND_URL:-http://localhost:8083/ooapi/}'
-    proxyOptions:
-      oauth2:
-        clientCredentials:
-          tokenEndpoint:
-            url: 'http://dummy:9999/'
-            params:
-              grant_type: client_credentials
-              client_id: fred
-              client_secret: wilma
-  EchoBackend:
-    url: '${OOAPI_ECHO_BACKEND_URL:-http://localhost:8085/}'
+      headers:
+        'Authorization': 'Bearer test-api-key'
 policies:
   - basic-auth
   - cors

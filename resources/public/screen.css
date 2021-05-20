@@ -1,4 +1,158 @@
+html {
+    font-family: sans-serif;
+    background: #eee;
+}
+
 body {
+    background: white;
+    margin: 2em auto;
+    padding: 2em;
     max-width: 40em;
     line-height: 1.5;
+}
+
+header {
+    position: relative;
+}
+
+header h1 {
+    margin: 0 0 1em 0;
+}
+
+header .login {
+    position: absolute;
+    top: 0;
+    right: 0;
+}
+
+header .login .button {
+    color: #008;
+    background: #ccf;
+    border: solid 1px #aaf;
+}
+
+header .login .button:hover {
+    background: #bbf;
+}
+
+header .login pre {
+    width: 5em;
+    overflow: hidden;
+}
+
+header .login pre:hover {
+    width: 5em;
+    overflow: inherit;
+}
+
+.flash {
+    border: solid #f80 .2em;
+    background: #fea;
+    padding: 1em;
+    white-space: pre;
+}
+
+ul {
+    padding: 0;
+}
+li {
+    list-style-position: inside;
+}
+
+label {
+    display: block;
+    font-weight: bold;
+}
+input {
+    width: 100%;
+    font-size: 1em;
+}
+select, option {
+    font-size: 1em;
+}
+input[type=submit] {
+    width: inherit;
+}
+a.button, button, input[type=submit] {
+    display: inline-block;
+    padding: 0 1em;
+
+    font-size: 1em;
+    color: #000;
+    cursor: pointer;
+    text-decoration: none;
+
+    background: #eee;
+    border-radius: 2px;
+    border: solid 1px #ccc;
+    outline: none;
+
+    user-select: none;
+    appearance: none;
+    -moz-appearance: none;
+    -webkit-appearance: none;
+}
+a.button, button {
+   line-height: 2.5em;
+}
+a.button:hover, button:hover, input[type=submit]:hover {
+    transition: background 0.2s;
+    background: #ddd;
+}
+a.button:focus, button:focus, input[type=submit]:focus {
+    box-shadow: 0 0 2px rgba(0,0,0,.5);
+}
+a.button.primary, button.primary, button[type=submit] {
+    font-weight: bold;
+}
+
+.field {
+    margin-bottom: 1em;
+}
+fieldset legend {
+    display: none;
+}
+fieldset {
+    padding: 0;
+    margin: 0;
+    border: none;
+}
+
+.detail {
+    position: relative;
+}
+
+.actions {
+    padding: 2em 0 0 0;
+}
+
+.delete button {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    margin-right: 0;
+    color: #800;
+    background: #fcc;
+    border: solid 1px #faa;
+    font-weight: inherit;
+}
+.delete button:hover {
+    background: #fbb;
+}
+
+ul.headers {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+ul.headers li {
+    margin-bottom: .5em;
+}
+.header input {
+    width: 16em;
+}
+.header .delete-header {
+    width: 2em;
+    padding: 0;
+    text-align: center;
 }
