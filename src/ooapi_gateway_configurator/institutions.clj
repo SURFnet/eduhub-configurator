@@ -1,30 +1,19 @@
-(ns ooapi-gateway-configurator.institutions.web
-  (:require [clojure.string :as s]
+(ns ooapi-gateway-configurator.institutions
+  (:require [clj-yaml.core :as yaml]
+            [clojure.string :as s]
             [compojure.core :refer [defroutes GET POST]]
             [compojure.response :refer [render]]
             [ooapi-gateway-configurator.html :refer [anti-forgery-field confirm-js layout]]
             [ooapi-gateway-configurator.http :as http]
-            [ooapi-gateway-configurator.institutions.store :as store]
             [ring.util.codec :refer [url-encode]]
             [ring.util.response :refer [redirect status]]))
 
-(defn wrap
-  "Middleware to allow reading and writing institutions."
-  [app institutions-yaml-fname]
-  (fn [req]
-    (let [old (store/fetch institutions-yaml-fname)
-          res (app (assoc req :institutions old))
-          new (get res :institutions)]
-      (when new
-        (store/put institutions-yaml-fname new))
-      res)))
-
-(defn as-str [v]
+(defn- as-str [v]
   (if (keyword? v)
     (name v)
     (str v)))
 
-(defn ->form
+(defn- ->form
   "Transform an institution into form parameters."
   [{:keys            [url]
     {:keys [auth
@@ -44,7 +33,7 @@
                   :oauth-client-secret (-> oauth2 :clientCredentials :tokenEndpoint :params :client_secret)
                   :oauth-scope  (-> oauth2 :clientCredentials :tokenEndpoint :params :scope))))
 
-(defn form->
+(defn- form->
   "Transform form parameters into an institution."
   [{:keys [url
            auth
@@ -77,13 +66,13 @@
       (seq opts)
       (assoc :proxyOptions opts))))
 
-(defn valid-http-url? [s]
+(defn- valid-http-url? [s]
   (try
     (let [url (java.net.URL. s)]
       (contains? #{"http" "https"} (.getProtocol url)))
     (catch Exception _ false)))
 
-(defn form-errors
+(defn- form-errors
   [{:keys [id url auth
            header-names header-values
            basic-auth-user basic-auth-pass
@@ -132,7 +121,7 @@
 
     :finally seq))
 
-(defn path
+(defn- path
   "Path to an institution resource."
   ([] "/institutions")
   ([id]
@@ -142,7 +131,7 @@
   ([id action] (str "/institutions/" (url-encode id)
                     "/" (url-encode (name action)))))
 
-(defn form
+(defn- form
   "Form hiccup for institution params."
   [{:keys [id url auth
            header-names header-values
@@ -164,7 +153,7 @@
      (for [[name value i] (map #(vector %1 %2 %3) header-names header-values (iterate inc 0))]
        [:li {:class "header"}
         [:input {:name "header-names[]", :value name, :placeholder "Name"}]
-             ": "
+        ": "
         [:input {:name "header-values[]", :value value, :placeholder "Value"}]
         [:input {:type  "submit", :name  (str "delete-header-" i),
                  :value "🗑",      :title "Delete header", :class "delete-header"}]])
@@ -220,7 +209,7 @@
        [:input {:type "text"
                 :name "oauth-scope", :value oauth-scope}]]])])
 
-(defn index-page
+(defn- index-page
   "List of institution hiccup."
   [institutions]
   [:div
@@ -230,7 +219,7 @@
       [:li [:a {:href (path id)} id]])]
    [:a {:href (path :new), :class "button"} "New institution"]])
 
-(defn detail-page
+(defn- detail-page
   "Institution detail hiccup."
   [{:keys [orig-id] :as institution}]
   [:div.detail
@@ -255,7 +244,7 @@
       (anti-forgery-field)
       [:button {:type "submit", :onclick (confirm-js :delete "institution" orig-id)} "Delete"]])])
 
-(defn delete-header-fn-from-params
+(defn- delete-header-fn-from-params
   "Find parameter named \"delete-header-X\" were X is a number and
   return a function to delete element at X."
   [params]
@@ -264,7 +253,7 @@
       (fn [coll]
         (concat (take n coll) (drop (inc n) coll))))))
 
-(defn create-or-update
+(defn- create-or-update
   "Handle create or update request."
   [{:keys                            [institutions params]
     {:keys [id orig-id
@@ -312,6 +301,8 @@
                                    (assoc (keyword id) (form-> params))))
           (assoc :flash (str "Updated institution '" id "'"))))))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 (defroutes handler
   (GET "/institutions" {:keys [institutions] :as req}
        (-> (map (fn [[id m]] (->form m id)) institutions)
@@ -344,3 +335,32 @@
 
   (POST "/institutions/:orig-id/update" req
         (create-or-update req)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defn- fetch
+  [yaml-fname]
+  (-> yaml-fname
+      slurp
+      yaml/parse-string
+      :serviceEndpoints))
+
+(defn- put
+  [yaml-fname institutions]
+  (spit yaml-fname
+        (-> yaml-fname
+            slurp
+            yaml/parse-string
+            (assoc :serviceEndpoints institutions)
+            yaml/generate-string)))
+
+(defn wrap
+  "Middleware to allow reading and writing institutions."
+  [app institutions-yaml-fname]
+  (fn [req]
+    (let [old (fetch institutions-yaml-fname)
+          res (app (assoc req :institutions old))
+          new (get res :institutions)]
+      (when new
+        (put institutions-yaml-fname new))
+      res)))

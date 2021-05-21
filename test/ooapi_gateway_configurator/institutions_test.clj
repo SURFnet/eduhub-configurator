@@ -1,22 +1,23 @@
-(ns ooapi-gateway-configurator.institutions.web-test
+(ns ooapi-gateway-configurator.institutions-test
   (:require [clj-yaml.core :as yaml]
             [clojure.java.io :as io]
             [clojure.test :refer :all]
             [ooapi-gateway-configurator.http :as http]
-            [ooapi-gateway-configurator.institutions.store :as store]
-            [ooapi-gateway-configurator.institutions.web :as sut]
+            [ooapi-gateway-configurator.institutions :as sut]
             [ring.middleware.defaults :refer [site-defaults wrap-defaults]]
             [ring.mock.request :refer [request]])
   (:import java.io.File))
 
+(def ^:dynamic *yaml-fname*)
 (def ^:dynamic *app*)
 
 (defn setup-app [f]
   (let [temp-file (File/createTempFile "institutions-test" "yml")]
     (spit temp-file (slurp (io/resource "test/gateway.config.yml")))
-    (binding [*app* (-> sut/handler
-                        (sut/wrap (.getPath temp-file))
-                        (wrap-defaults (dissoc site-defaults :security)))]
+    (binding [*yaml-fname* (.getPath temp-file)
+              *app*        (-> sut/handler
+                               (sut/wrap (.getPath temp-file))
+                               (wrap-defaults (dissoc site-defaults :security)))]
       (f))
     (.delete temp-file)))
 
@@ -187,15 +188,32 @@
                           :oauth2 :clientCredentials :tokenEndpoint :params :client_secret]))
           "got oauth client secret"))))
 
-(def test-institutions (store/fetch "resources/test/gateway.config.yml"))
+(def test-institutions (#'sut/fetch "resources/test/gateway.config.yml"))
 
 (deftest ->form->
   (testing "->form and form-> round trip")
   (doseq [[id institution] test-institutions]
     (is (= (yaml/generate-string institution) ;; yaml it to avoid problems with header names becoming keywords
-           (yaml/generate-string (sut/form-> (sut/->form institution id)))))))
+           (yaml/generate-string (#'sut/form-> (#'sut/->form institution id)))))))
 
 (deftest form-errors
   (testing "test institutions do not have errors"
-    (doseq [institution (map (fn [[id m]] (sut/->form m id)) test-institutions)]
-      (is (not (sut/form-errors institution))))))
+    (doseq [institution (map (fn [[id m]] (#'sut/->form m id)) test-institutions)]
+      (is (not (#'sut/form-errors institution))))))
+
+(deftest fetch
+  (let [institutions (#'sut/fetch *yaml-fname*)]
+    (is (contains? institutions :BasicAuthBackend))))
+
+(deftest put
+  (testing "round trip"
+    (let [before (#'sut/fetch *yaml-fname*)]
+      (#'sut/put *yaml-fname* before)
+      (is (= before (#'sut/fetch *yaml-fname*)))))
+
+  (testing "setting institutions"
+    (#'sut/put *yaml-fname* {:put-test {:url "http://example.com/put-test"}})
+    (let [institutions (#'sut/fetch *yaml-fname*)]
+      (is (= 1 (count institutions)))
+      (is (= {:put-test {:url "http://example.com/put-test"}}
+             institutions)))))

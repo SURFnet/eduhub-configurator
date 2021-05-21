@@ -3,7 +3,7 @@
             [compojure.route :refer [not-found resources]]
             [ooapi-gateway-configurator.auth :as auth]
             [ooapi-gateway-configurator.html :refer [layout]]
-            [ooapi-gateway-configurator.institutions.web :as institutions]
+            [ooapi-gateway-configurator.institutions :as institutions]
             [ring.middleware.defaults :refer [site-defaults wrap-defaults]]))
 
 (defn main-page
