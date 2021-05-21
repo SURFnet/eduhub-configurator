@@ -121,7 +121,7 @@
 
     :finally seq))
 
-(defn- path
+(defn path
   "Path to an institution resource."
   ([] "/institutions")
   ([id]
