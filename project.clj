@@ -14,8 +14,7 @@
                  [ring "1.9.3"]
                  [ring-oauth2 "0.1.5"]
                  [ring/ring-defaults "0.3.2"]
-                 [ring/ring-jetty-adapter "1.9.3"]
-                 [ring/ring-mock "0.4.0"]]
+                 [ring/ring-jetty-adapter "1.9.3"]]
 
   :main ^:skip-aot ooapi-gateway-configurator.core
 
@@ -24,7 +23,9 @@
   :profiles {:uberjar {:aot :all}
              :dev     {:source-paths ["dev"]
                        :dependencies [[org.clojure/tools.namespace "1.1.0"]
-                                      [clj-kondo "2021.04.23"]]
+                                      [clj-kondo "2021.04.23"]
+                                      [ring/ring-mock "0.4.0"]
+                                      [ring/ring-json "0.5.1"]]
                        :plugins      [[lein-kibit "0.1.8"]]
                        :aliases      {"lint" ["do"
                                               ["run" "-m" "clj-kondo.main" "--lint" "src"]
