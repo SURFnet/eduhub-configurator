@@ -110,6 +110,18 @@ a.button.primary, button.primary, button[type=submit] {
 .field {
     margin-bottom: 1em;
 }
+.field label .info {
+    display: inline-block;
+    font-style: italic;
+    font-weight: normal;
+    font-size: .8em;
+}
+.field label .info:before {
+    content: '(';
+}
+.field label .info:after {
+    content: ')';
+}
 fieldset legend {
     display: none;
 }

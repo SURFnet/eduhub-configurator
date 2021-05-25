@@ -76,7 +76,7 @@
       (is (= "http://localhost/institutions" (-> res :headers (get "Location")))
           "redirected back to institutions list")
       (is (:flash res)
-          "has a message about deletion")
+          "has a message about update")
       (is (:institutions res)
           "has new set of institutions")
       (is (not (get (:institutions res) :BasicAuthBackend))
@@ -169,7 +169,7 @@
       (is (= "http://localhost/institutions" (-> res :headers (get "Location")))
           "redirected back to institutions list")
       (is (:flash res)
-          "has a message about deletion")
+          "has a message about creation")
       (is (:institutions res)
           "has new set of institutions")
       (is (= "https://example.com/test"

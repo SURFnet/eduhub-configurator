@@ -17,8 +17,11 @@
    :auth-client-id        nil
    :auth-client-secret    nil
    :auth-user-info-uri    nil
+
    ;; TODO remove this
-   :gateway-config-yaml   "resources/test/gateway.config.yml"})
+   :gateway-config-yaml "resources/test/gateway.config.yml"
+   ;; TODO remove this
+   :credentials-json    "resources/test/credentials.json"})
 
 (defn get-env
   [env k & {:keys [required?] :as opts}]
@@ -60,7 +63,8 @@
   {:jetty {:host  (get-str env :http-host)
            :port  (get-int env :http-port)
            :join? false}
-   :web   {:institutions-yaml-fname (get-file env :gateway-config-yaml :existing true)}
+   :web   {:gateway-config-yaml (get-file env :gateway-config-yaml :existing true)
+           :credentials-json    (get-file env :credentials-json :existing true)}
    :auth  {:authorize-uri    (get-str env :auth-authorize-uri :required? true)
            :access-token-uri (get-str env :auth-access-token-uri :required? true)
            :user-info-uri    (get-str env :auth-user-info-uri :required? true)

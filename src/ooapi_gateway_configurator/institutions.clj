@@ -125,12 +125,14 @@
 (defn path
   "Path to an institution resource."
   ([] "/institutions")
-  ([id]
-   (if (keyword? id)
-     (str "/institutions/" (url-encode (name id)))
-     (str "/institutions/" (url-encode id))))
-  ([id action] (str "/institutions/" (url-encode id)
-                    "/" (url-encode (name action)))))
+  ([id-or-action]
+   {:pre [(or (string? id-or-action) (keyword? id-or-action))]}
+   (str "/institutions/" (url-encode (name id-or-action))))
+  ([id action]
+   {:pre [(string? id)
+          (keyword? action)]}
+   (str "/institutions/" (url-encode id)
+        "/" (url-encode (name action)))))
 
 (defn- form
   "Form hiccup for institution params."
@@ -295,12 +297,12 @@
           (layout (assoc req :flash (str "ID already taken; " id))))
 
       :else
-      (-> "/institutions"
+      (-> (path)
           (redirect :see-other)
           (assoc :institutions (-> institutions
                                    (dissoc (keyword orig-id))
                                    (assoc (keyword id) (form-> params))))
-          (assoc :flash (str "Updated institution '" id "'"))))))
+          (assoc :flash (str (if orig-id "Updated" "Created") " institution '" id "'"))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 

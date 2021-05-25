@@ -1,10 +1,7 @@
 (ns user
-  (:require [clojure.java.io :as io]
-            [clojure.tools.logging :as log]
-            [clojure.tools.namespace.repl :refer :all]
+  (:require [clojure.tools.namespace.repl :refer [refresh-all]]
             [environ.core :refer [env]]
-            [ooapi-gateway-configurator.core :as core])
-  (:import java.util.logging.LogManager))
+            [ooapi-gateway-configurator.core :as core]))
 
 (defn start!
   []
