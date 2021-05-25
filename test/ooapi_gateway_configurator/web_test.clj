@@ -7,7 +7,7 @@
 
 (def ^:dynamic *app*)
 
-(def app (-> sut/handler (wrap-defaults site-defaults)))
+(def app (-> (sut/mk-handler {:auth {:group-ids #{}}}) (wrap-defaults site-defaults)))
 
 (defn do-get [uri]
   (app (request :get uri)))
