@@ -17,8 +17,8 @@
   (routes (GET "/" req
                (layout (main-page) req))
 
-          (-> institutions/handler
-              (wrap-routes auth/wrap-member-of (get-in config [:auth :group-ids])))
+          (wrap-routes institutions/handler
+                       auth/wrap-member-of (get-in config [:auth :group-ids]))
 
           auth/logout-handler
           (resources "/" {:root "public"})

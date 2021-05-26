@@ -3,12 +3,16 @@ on: push
 
 jobs:
   test:
-
     runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v2
+
     - name: Install dependencies
       run: lein deps
+
+    - name: Run linters
+      run: lein lint
+
     - name: Run tests
       run: lein test

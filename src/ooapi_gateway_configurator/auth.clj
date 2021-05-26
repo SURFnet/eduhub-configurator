@@ -30,10 +30,6 @@
             [ring.middleware.oauth2 :as oauth2]
             [ring.util.response :as response]))
 
-(defn- token
-  [r]
-  (get-in r [:oauth2/access-tokens :conext :token]))
-
 (defn- wrap-auth-error
   "When the Conext identity provider signals an error with
   authentication, show it and log a summary."
@@ -43,9 +39,9 @@
              (:error params))
       (do (log/error "OAuth2 error"
                      (select-keys request [:uri :params]))
-          (-> (response/bad-request (str "An error was received from the authentication service.
-This is probably caused by a configuration error.\n\n"
-                                         (pr-str params)))
+          (-> "An error was received from the authentication service.\nThis is probably caused by a configuration error.\n\n"
+              (str (pr-str params))
+              (response/bad-request )
               (response/content-type "text/plain")))
       (handler request))))
 
@@ -95,7 +91,7 @@ This is probably caused by a configuration error.\n\n"
   "Login/logout block for html interface"
   [request]
   [:div.login
-   (if-let [info (user-info request)]
+   (if (user-info request)
      [:form {:action "/logout"
              :method "POST"}
       (anti-forgery-field)
@@ -104,7 +100,8 @@ This is probably caused by a configuration error.\n\n"
      [:a.button {:href "/oauth2/conext"} "Log in"])])
 
 (defroutes logout-handler
-  (POST "/logout" request
-        (-> (response/redirect "/" :see-other)
+  (POST "/logout" _
+        (-> "/"
+            (response/redirect :see-other)
             (assoc :session {}
                    :flash "You are logged out"))))

@@ -6,11 +6,9 @@
             [ooapi-gateway-configurator.core :as core])
   (:import java.util.logging.LogManager))
 
-(def config (core/mk-config env))
-
 (defn start!
   []
-  (core/start! config))
+  (core/start! (core/mk-config env)))
 
 (defn stop!
   []

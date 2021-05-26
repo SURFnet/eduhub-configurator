@@ -151,7 +151,7 @@
    [:div.field
     [:label "Headers"]
     [:ul.headers
-     (for [[name value i] (map #(vector %1 %2 %3) header-names header-values (iterate inc 0))]
+     (for [[name value i] (map vector header-names header-values (iterate inc 0))]
        [:li {:class "header"}
         [:input {:name "header-names[]", :value name, :placeholder "Name"}]
         ": "

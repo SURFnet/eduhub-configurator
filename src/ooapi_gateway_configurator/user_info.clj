@@ -1,25 +1,24 @@
 (ns ooapi-gateway-configurator.user-info
-  (:require [clj-http.client :as http]
-            [clojure.string :as string]
-            [clojure.tools.logging :as log]))
+  (:require [clj-http.client :as http]))
 
 (defn- fetch-user-info
   "Get user-info from session or from user-info-endpoint
   for every available OAuth2 access token"
-  [{:keys [oauth2/access-tokens] {:keys [::user-info]} :session} profiles]
-  (->> profiles
-       (reduce
-        (fn [result [key profile]]
-          (if-let [token (get-in access-tokens [key :token])] ;;
-            (assoc result key (or (get user-info key)
-                                  ;; http/get throws exception on http errors
-                                  (-> (http/get (get-in profiles [key :user-info-uri])
-                                                {:oauth-token token
-                                                 :accept      :json
-                                                 :as          :json})
-                                      :body)))
-            result))
-        {})))
+  [{:keys [oauth2/access-tokens]
+    {:keys [::user-info]} :session}
+   profiles]
+  (reduce (fn [result [key _]]
+            (if-let [token (get-in access-tokens [key :token])] ;;
+              (assoc result key
+                     (or (get user-info key)
+                         ;; http/get throws exception on http errors
+                         (:body (http/get (get-in profiles [key :user-info-uri])
+                                          {:oauth-token token
+                                           :accept      :json
+                                           :as          :json}))))
+              result))
+          {}
+          profiles))
 
 (defn wrap-user-info
   "Middleware providing additional user information.
@@ -50,7 +49,10 @@
          (every? :user-info-uri (vals profiles))]}
   (fn [request]
     (let [user-info (fetch-user-info request profiles)
-          response  (handler (assoc request :oauth2/user-info user-info))]
+          response  (-> request
+                        (assoc :oauth2/user-info user-info)
+                        (handler))]
       (assoc response :session
-             (assoc (or (:session response) (:session request))
+             (assoc (or (:session response)
+                        (:session request))
                     ::user-info user-info)))))
