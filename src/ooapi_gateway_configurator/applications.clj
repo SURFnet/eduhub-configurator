@@ -1,11 +1,12 @@
 (ns ooapi-gateway-configurator.applications
-  (:require [clojure.data.json :as json]
-            [clojure.string :as s]
+  (:require [clojure.string :as s]
             [compojure.core :refer [defroutes GET POST]]
             [compojure.response :refer [render]]
+            [hiccup.util :refer [escape-html]]
             [ooapi-gateway-configurator.anti-forgery :refer [anti-forgery-field]]
-            [ooapi-gateway-configurator.html :refer [confirm-js layout]]
+            [ooapi-gateway-configurator.html :refer [confirm-js layout not-found]]
             [ooapi-gateway-configurator.http :as http]
+            [ooapi-gateway-configurator.state :as state]
             [ring.util.codec :refer [url-encode]]
             [ring.util.response :refer [redirect status]])
   (:import java.security.MessageDigest))
@@ -39,18 +40,21 @@
    :password-hash passwordHash})
 
 (defn- form->
-  [{:keys [password]}]
-  (if password
-    (let [salt (generate-random-string)]
-      {:passwordSalt salt
-       :passwordHash (hash-password password salt)})
-    {}))
+  [{:keys [id password]}]
+  (into {:id id}
+        (when password
+          (let [salt (generate-random-string)]
+            {:passwordSalt salt
+             :passwordHash (hash-password password salt)}))))
 
 (defn- form-errors
   [{:keys [id]}]
   (cond-> []
     (s/blank? id)
     (conj "ID can not be blank")
+
+    (and id (not (re-matches #"[a-zA-Z0-8_:-]*" id)))
+    (conj "ID can only contain letters, digits, _, : or -.")
 
     :finally seq))
 
@@ -66,22 +70,13 @@
    (str "/applications/" (url-encode id)
         "/" (url-encode (name action)))))
 
-(defn- index-page
-  "List of applications hiccup."
-  [applications]
-  [:div
-   [:h2 "Applications"]
-   [:ul
-    (for [id (->> applications (map :id) (sort))]
-      [:li [:a {:href (path id)} id]])]
-   [:a {:href (path :new), :class "button"} "New application"]])
-
 (defn- form [{:keys [id orig-id reset-password]}]
   (let [show-password (or (not orig-id) reset-password)]
     [[:div.field
-      [:label {:for "id"} "ID"]
-      [:input {:type  "text", :required true
-               :id    "id",   :name     "id"
+      [:label {:for "id"} "ID "
+       [:span.info "only letters, digits, _, : or -"]]
+      [:input {:type  "text", :pattern "[a-zA-Z0-8_:-]*", :required true
+               :id    "id",   :name    "id"
                :value id}]]
      [:div.field
       [:label {:for "password"} "Password "
@@ -94,12 +89,22 @@
         [:input {:type "submit"
                  :name "reset-password", :value "Reset password"}])]]))
 
+(defn- index-page
+  "List of applications hiccup."
+  [applications]
+  [:div
+   [:h2 "Applications"]
+   [:ul
+    (for [id (->> applications (map :id) (sort))]
+      [:li [:a {:href (path id)} (escape-html id)]])]
+   [:a {:href (path :new), :class "button"} "New application"]])
+
 (defn- detail-page
   "Application detail hiccup."
   [{:keys [orig-id] :as application}]
   [:div.detail
    (if orig-id
-     [:h2 "Application: " orig-id]
+     [:h2 "Application: " (escape-html orig-id)]
      [:h2 "New application"])
 
    [:form {:action (if orig-id (path orig-id :update) (path :create))
@@ -125,7 +130,7 @@
 
 (defn- create-or-update
   "Handle create or update request."
-  [{:keys                    [applications params]
+  [{:keys                    [params ::state/applications]
     {:keys [id orig-id
             reset-password]} :params
     :as                      req}]
@@ -150,17 +155,16 @@
           (layout (assoc req :flash (str "ID already taken; " id))))
 
       :else
-      (let [application (into (get applications (keyword orig-id) {})
-                              (form-> params))]
+      (let [application (form-> params)]
         (-> (path)
             (redirect :see-other)
-            (assoc :applications (-> applications
-                                     (dissoc (keyword orig-id))
-                                     (assoc (keyword id) application)))
+            (assoc ::state/command (if orig-id
+                                     [::state/update-application orig-id application]
+                                     [::state/create-application application]))
             (assoc :flash (str (if orig-id "Updated" "Created") " application '" id "'")))))))
 
 (defroutes handler
-  (GET "/applications" {:keys [applications] :as req}
+  (GET "/applications" {:keys [::state/applications] :as req}
        (-> (map (fn [[id m]] (->form m id)) applications)
            (index-page)
            (layout req)))
@@ -173,41 +177,32 @@
   (POST "/applications/create" req
         (create-or-update req))
 
-  (GET "/applications/:id" {:keys        [applications]
+  (GET "/applications/:id" {:keys        [::state/applications]
                             {:keys [id]} :params
                             :as          req}
-       (-> applications
-           (get (keyword id))
-           (->form id)
-           (detail-page)
-           (layout req)))
+       (if-let [application (get applications (keyword id))]
+         (-> application
+             (->form id)
+             (detail-page)
+             (layout req))
+         (not-found (str "Application '" id "' not found..")
+                    req)))
 
-  (POST "/applications/:id/delete" {:keys        [applications]
-                                    {:keys [id]} :params}
-        ;; TODO also delete application from ACLs
-        (-> "/applications"
-            (redirect :see-other)
-            (assoc :applications (dissoc applications (keyword id)))
-            (assoc :flash (str "Deleted application '" id "'"))))
+  (POST "/applications/:id/delete" {:keys        [::state/applications]
+                                    {:keys [id]} :params
+                                    :as req}
+        (if (get applications (keyword id))
+          (-> "/applications"
+              (redirect :see-other)
+              (assoc ::state/command [::state/delete-application id])
+              (assoc :flash (str "Deleted application '" id "'")))
+          (not-found (str "Application '" id "' not found..")
+                     req)))
 
-  (POST "/applications/:orig-id/update" req
-        (create-or-update req)))
-
-(defn fetch
-  [credentials-json-fname]
-  (json/read-str (slurp credentials-json-fname) :key-fn keyword))
-
-(defn put
-  [credentials-json-fname applications]
-  (spit credentials-json-fname (json/write-str applications :key-fn name)))
-
-(defn wrap
-  "Middleware to allow reading and writing application credentials."
-  [application credentials-json-fname]
-  (fn [req]
-    (let [old (fetch credentials-json-fname)
-          res (application (assoc req :applications old))
-          new (get res :applications)]
-      (when new
-        (put credentials-json-fname new))
-      res)))
+  (POST "/applications/:orig-id/update" {:keys             [::state/applications]
+                                         {:keys [orig-id]} :params
+                                         :as               req}
+        (if (get applications (keyword orig-id))
+          (create-or-update req)
+          (not-found (str "Application '" orig-id "' not found..")
+                     req))))

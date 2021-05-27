@@ -6,6 +6,8 @@
             [ooapi-gateway-configurator.auth-pages :as auth-pages]
             [ooapi-gateway-configurator.html :refer [layout]]
             [ooapi-gateway-configurator.institutions :as institutions]
+            [ooapi-gateway-configurator.state :as state]
+            [ooapi-gateway-configurator.store :as store]
             [ring.middleware.defaults :refer [site-defaults wrap-defaults]]))
 
 (defn main-page
@@ -32,10 +34,13 @@
   [config]
   (-> config
       (mk-handler)
+
+      (state/wrap)
+      (store/wrap (:store config))
+
       (auth-pages/wrap-auth-pages)
-      (institutions/wrap (get-in config [:web :gateway-config-yaml]))
-      (applications/wrap (get-in config [:web :credentials-json]))
       (auth/wrap-authentication (:auth config))
+
       (wrap-defaults (-> config
                          (get :site-defaults site-defaults)
                          (assoc-in [:session :cookie-attrs :same-site] :lax)))))

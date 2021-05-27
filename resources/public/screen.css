@@ -46,7 +46,7 @@ header .login pre:hover {
     overflow: inherit;
 }
 
-.flash {
+.flash, .warning {
     border: solid #f80 .2em;
     background: #fea;
     padding: 1em;

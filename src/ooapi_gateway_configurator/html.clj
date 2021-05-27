@@ -1,6 +1,10 @@
 (ns ooapi-gateway-configurator.html
-  (:require [hiccup.page :refer [html5]]
-            [ooapi-gateway-configurator.auth :as auth]))
+  (:require [compojure.response :refer [render]]
+            [hiccup.page :refer [html5]]
+            [hiccup.util :refer [escape-html]]
+            [ooapi-gateway-configurator.auth :as auth]
+            [ooapi-gateway-configurator.http :as http]
+            [ring.util.response :refer [status]]))
 
 (def title "OOAPI Gateway Configurator")
 
@@ -16,8 +20,16 @@
     [:header
      [:h1 [:a {:href "/"} title]]
      (auth/auth-component req)
-     (when flash [:p.flash flash])]
+     (when flash [:p.flash (escape-html flash)])]
     [:main body]]))
+
+(defn not-found
+  [msg req]
+  (-> [:div [:h3 "Not Found"]
+       [:p (escape-html msg)]]
+      (layout req)
+      (render req)
+      (status http/not-found)))
 
 (defn confirm-js [action resource id]
   (str "return confirm("

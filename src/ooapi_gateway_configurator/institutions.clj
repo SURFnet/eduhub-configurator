@@ -1,11 +1,12 @@
 (ns ooapi-gateway-configurator.institutions
-  (:require [clj-yaml.core :as yaml]
-            [clojure.string :as s]
+  (:require [clojure.string :as s]
             [compojure.core :refer [defroutes GET POST]]
             [compojure.response :refer [render]]
-            [ooapi-gateway-configurator.html :refer [confirm-js layout]]
+            [hiccup.util :refer [escape-html]]
             [ooapi-gateway-configurator.anti-forgery :refer [anti-forgery-field]]
+            [ooapi-gateway-configurator.html :refer [confirm-js layout not-found]]
             [ooapi-gateway-configurator.http :as http]
+            [ooapi-gateway-configurator.state :as state]
             [ring.util.codec :refer [url-encode]]
             [ring.util.response :refer [redirect status]]))
 
@@ -36,7 +37,8 @@
 
 (defn- form->
   "Transform form parameters into an institution."
-  [{:keys [url
+  [{:keys [id
+           url
            auth
            basic-auth-user basic-auth-pass
            oauth-url oauth-client-id oauth-client-secret oauth-scope
@@ -63,7 +65,7 @@
                       (-> header-names
                           (zipmap header-values)
                           (dissoc ""))))]
-    (cond-> {:url url}
+    (cond-> {:id id, :url url}
       (seq opts)
       (assoc :proxyOptions opts))))
 
@@ -81,6 +83,9 @@
   (cond-> []
     (s/blank? id)
     (conj "ID can not be blank")
+
+    (and id (not (re-matches #"[a-zA-Z0-8_:-]*" id)))
+    (conj "ID can only contain letters, digits, _, : or -.")
 
     (s/blank? url)
     (conj "URL can not be blank")
@@ -141,9 +146,10 @@
            basic-auth-user basic-auth-pass
            oauth-url oauth-client-id oauth-client-secret oauth-scope]}]
   [[:div.field
-    [:label {:for "id"} "ID"]
-    [:input {:type "text", :required true
-             :id   "id",   :name     "id", :value id}]]
+    [:label {:for "id"} "ID "
+     [:span.info "only letters, digits, _, : or -"]]
+    [:input {:type "text", :pattern "[a-zA-Z0-8_:-]*", :required true
+             :id   "id",   :name    "id",    :value    id}]]
 
    [:div.field
     [:label {:for "url"} "URL"]
@@ -219,7 +225,7 @@
    [:h2 "Institutions"]
    [:ul
     (for [id (->> institutions (map :id) (sort))]
-      [:li [:a {:href (path id)} id]])]
+      [:li [:a {:href (path id)} (escape-html id)]])]
    [:a {:href (path :new), :class "button"} "New institution"]])
 
 (defn- detail-page
@@ -227,7 +233,7 @@
   [{:keys [orig-id] :as institution}]
   [:div.detail
    (if orig-id
-     [:h2 "Institution: " orig-id]
+     [:h2 "Institution: " (escape-html orig-id)]
      [:h2 "New institution"])
 
    [:form {:action   (if orig-id (path orig-id :update) (path :create))
@@ -258,7 +264,7 @@
 
 (defn- create-or-update
   "Handle create or update request."
-  [{:keys                            [institutions params]
+  [{:keys                            [params ::state/institutions]
     {:keys [id orig-id
             add-header select-auth]} :params
     :as                              req}]
@@ -297,17 +303,18 @@
           (layout (assoc req :flash (str "ID already taken; " id))))
 
       :else
-      (-> (path)
-          (redirect :see-other)
-          (assoc :institutions (-> institutions
-                                   (dissoc (keyword orig-id))
-                                   (assoc (keyword id) (form-> params))))
-          (assoc :flash (str (if orig-id "Updated" "Created") " institution '" id "'"))))))
+      (let [institution (form-> params)]
+        (-> (path)
+            (redirect :see-other)
+            (assoc ::state/command (if orig-id
+                                     [::state/update-institution orig-id institution]
+                                     [::state/create-institution institution]))
+            (assoc :flash (str (if orig-id "Updated" "Created") " institution '" id "'")))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defroutes handler
-  (GET "/institutions" {:keys [institutions] :as req}
+  (GET "/institutions" {:keys [::state/institutions] :as req}
        (-> (map (fn [[id m]] (->form m id)) institutions)
            (index-page)
            (layout req)))
@@ -320,50 +327,32 @@
   (POST "/institutions/create" req
         (create-or-update req))
 
-  (GET "/institutions/:id" {:keys        [institutions]
+  (GET "/institutions/:id" {:keys        [::state/institutions]
                             {:keys [id]} :params
                             :as          req}
-       (-> institutions
-           (get (keyword id))
-           (->form id)
-           (detail-page)
-           (layout req)))
+       (if-let [institution (get institutions (keyword id))]
+         (-> institution
+             (->form id)
+             (detail-page)
+             (layout req))
+         (not-found (str "Institution '" id "' not found..")
+                    req)))
 
-  (POST "/institutions/:id/delete" {:keys        [institutions]
-                                    {:keys [id]} :params}
-        (-> "/institutions"
-            (redirect :see-other)
-            (assoc :institutions (dissoc institutions (keyword id)))
-            (assoc :flash (str "Deleted institution '" id "'"))))
+  (POST "/institutions/:id/delete" {:keys        [::state/institutions]
+                                    {:keys [id]} :params
+                                    :as req}
+        (if (get institutions (keyword id))
+          (-> "/institutions"
+              (redirect :see-other)
+              (assoc ::state/command [::state/delete-institution id])
+              (assoc :flash (str "Deleted institution '" id "'")))
+          (not-found (str "Institution '" id "' not found..")
+                     req)))
 
-  (POST "/institutions/:orig-id/update" req
-        (create-or-update req)))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(defn- fetch
-  [yaml-fname]
-  (-> yaml-fname
-      slurp
-      yaml/parse-string
-      :serviceEndpoints))
-
-(defn- put
-  [yaml-fname institutions]
-  (spit yaml-fname
-        (-> yaml-fname
-            slurp
-            yaml/parse-string
-            (assoc :serviceEndpoints institutions)
-            yaml/generate-string)))
-
-(defn wrap
-  "Middleware to allow reading and writing institutions."
-  [app institutions-yaml-fname]
-  (fn [req]
-    (let [old (fetch institutions-yaml-fname)
-          res (app (assoc req :institutions old))
-          new (get res :institutions)]
-      (when new
-        (put institutions-yaml-fname new))
-      res)))
+  (POST "/institutions/:orig-id/update" {:keys             [::state/institutions]
+                                         {:keys [orig-id]} :params
+                                         :as req}
+        (if (get institutions (keyword orig-id))
+          (create-or-update req)
+          (not-found (str "Institution '" orig-id "' not found..")
+                     req))))

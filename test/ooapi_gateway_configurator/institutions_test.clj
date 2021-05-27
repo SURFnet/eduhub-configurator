@@ -1,27 +1,20 @@
 (ns ooapi-gateway-configurator.institutions-test
   (:require [clj-yaml.core :as yaml]
-            [clojure.java.io :as io]
             [clojure.test :refer :all]
             [ooapi-gateway-configurator.http :as http]
-            [ooapi-gateway-configurator.institutions :as sut]
-            [ring.middleware.defaults :refer [site-defaults wrap-defaults]]
-            [ring.mock.request :refer [request]])
-  (:import java.io.File))
+            [ooapi-gateway-configurator.institutions :as institutions]
+            [ooapi-gateway-configurator.state :as state]
+            [ooapi-gateway-configurator.store-test :as store-test]
+            [ring.mock.request :refer [request]]))
 
-(def ^:dynamic *yaml-fname*)
 (def ^:dynamic *app*)
 
-(defn setup-app [f]
-  (let [temp-file (File/createTempFile "institutions-test" "yml")]
-    (spit temp-file (slurp (io/resource "test/gateway.config.yml")))
-    (binding [*yaml-fname* (.getPath temp-file)
-              *app*        (-> sut/handler
-                               (sut/wrap (.getPath temp-file))
-                               (wrap-defaults (dissoc site-defaults :security)))]
-      (f))
-    (.delete temp-file)))
-
-(use-fixtures :each setup-app)
+(use-fixtures :each
+  (fn [f]
+    (let [state (store-test/setup)]
+      (binding [*app* (store-test/wrap institutions/handler state)]
+        (f))
+      (store-test/teardown state))))
 
 (defn do-get [uri]
   (*app* (request :get uri)))
@@ -39,6 +32,8 @@
 
 (deftest do-detail
   (testing "GET /institutions/BasicAuthBackend"
+    (is (= http/not-found (:status (do-get "/institutions/DoesNotExist")))
+        "Not Found")
     (let [res (do-get "/institutions/BasicAuthBackend")]
       (is (= http/ok (:status res))
           "OK")
@@ -49,6 +44,8 @@
 
 (deftest do-delete
   (testing "POST /institutions/BasicAuthBackend/delete"
+    (is (= http/not-found (:status (do-post "/institutions/DoesNotExist/delete")))
+        "Not Found")
     (let [res (do-post "/institutions/BasicAuthBackend/delete")]
       (is (= http/see-other (:status res))
           "see other")
@@ -56,13 +53,13 @@
           "redirected back to institutions list")
       (is (:flash res)
           "has a message about deletion")
-      (is (:institutions res)
-          "has new set of institutions")
-      (is (not (get (:institutions res) :BasicAuthBackend))
-          "BasicAuthBackend is missing"))))
+      (is (= [::state/delete-institution "BasicAuthBackend"] (-> res ::state/command))
+          "has delete-application command for BasicAuthBackend"))))
 
 (deftest do-update
   (testing "POST /institutions/BasicAuthBackend/update"
+    (is (= http/not-found (:status (do-post "/institutions/DoesNotExist/update")))
+        "Not Found")
     (let [res (do-post "/institutions/BasicAuthBackend/update"
                        {:id              "test"
                         :url             "https://example.com/test"
@@ -77,20 +74,13 @@
           "redirected back to institutions list")
       (is (:flash res)
           "has a message about update")
-      (is (:institutions res)
-          "has new set of institutions")
-      (is (not (get (:institutions res) :BasicAuthBackend))
-          "BasicAuthBackend is missing because it's renamed")
-      (is (= "https://example.com/test"
-             (get-in res [:institutions :test :url]))
-          "got URL")
-      (is (= ["1" "2"]
-             [(get-in res [:institutions :test :proxyOptions :headers "X-test"])
-              (get-in res [:institutions :test :proxyOptions :headers "X-other"])])
-          "got headers")
-      (is (= "fred:betty"
-             (get-in res [:institutions :test :proxyOptions :auth]))
-          "got new basic auth credentials")))
+      (is (= [::state/update-institution "BasicAuthBackend"
+              {:id  "test",
+               :url "https://example.com/test",
+               :proxyOptions {:auth "fred:betty"
+                              :headers {"X-test" "1", "X-other" "2"}}}]
+             (-> res ::state/command))
+          "has update-institution command for BasicAuthBackend")))
 
   (testing "errors"
     (let [res (do-post "/institutions/BasicAuthBackend/update"
@@ -170,50 +160,41 @@
           "redirected back to institutions list")
       (is (:flash res)
           "has a message about creation")
-      (is (:institutions res)
-          "has new set of institutions")
-      (is (= "https://example.com/test"
-             (get-in res [:institutions :test :url]))
-          "got URL")
-      (is (= "https://oauth/test"
-             (get-in res [:institutions :test :proxyOptions
-                          :oauth2 :clientCredentials :tokenEndpoint :url]))
-          "got oauth token URL")
-      (is (= "fred"
-             (get-in res [:institutions :test :proxyOptions
-                          :oauth2 :clientCredentials :tokenEndpoint :params :client_id]))
-          "got oauth client id")
-      (is (= "wilma"
-             (get-in res [:institutions :test :proxyOptions
-                          :oauth2 :clientCredentials :tokenEndpoint :params :client_secret]))
-          "got oauth client secret"))))
+      (is (= ::state/create-institution (-> res ::state/command first))
+          "has create-institution command")
+      (is (= {:id                  "test"
+              :url                 "https://example.com/test"
+              :proxyOptions {:oauth2
+                             {:clientCredentials
+                              {:tokenEndpoint
+                               {:url "https://oauth/test",
+                                :params
+                                {:grant_type "client_credentials",
+                                 :client_id "fred",
+                                 :client_secret "wilma"}}}}}}
+             (-> res ::state/command last))))))
 
-(def test-institutions (#'sut/fetch "resources/test/gateway.config.yml"))
+(def test-institutions
+  {:BasicAuthBackend {:id           "BasicAuthBackend"
+                      :url          "https://example.com/test-backend"
+                      :proxyOptions {:auth "fred:wilma"}}
+   :Oauth2Backend    {:id           "Oauth2Backend"
+                      :url          "https://example.com/other-test-backend"
+                      :proxyOptions {:oauth2 {:clientCredentials {:tokenEndpoint {:url    "http://localhost:8084/mock/token"
+                                                                                  :params {:grant_type    "client_credentials"
+                                                                                           :client_id     "fred"
+                                                                                           :client_secret "wilma"}}}}}}
+   :ApiKeyBackend    {:id           "ApiKeyBackend"
+                      :url          "https://example.com/api-key-backend"
+                      :proxyOptions {:headers {:Authorization "Bearer test-api-key"}}}})
 
 (deftest ->form->
   (testing "->form and form-> round trip")
   (doseq [[id institution] test-institutions]
     (is (= (yaml/generate-string institution) ;; yaml it to avoid problems with header names becoming keywords
-           (yaml/generate-string (#'sut/form-> (#'sut/->form institution id)))))))
+           (yaml/generate-string (#'institutions/form-> (#'institutions/->form institution id)))))))
 
 (deftest form-errors
   (testing "test institutions do not have errors"
-    (doseq [institution (map (fn [[id m]] (#'sut/->form m id)) test-institutions)]
-      (is (not (#'sut/form-errors institution))))))
-
-(deftest fetch
-  (let [institutions (#'sut/fetch *yaml-fname*)]
-    (is (contains? institutions :BasicAuthBackend))))
-
-(deftest put
-  (testing "round trip"
-    (let [before (#'sut/fetch *yaml-fname*)]
-      (#'sut/put *yaml-fname* before)
-      (is (= before (#'sut/fetch *yaml-fname*)))))
-
-  (testing "setting institutions"
-    (#'sut/put *yaml-fname* {:put-test {:url "http://example.com/put-test"}})
-    (let [institutions (#'sut/fetch *yaml-fname*)]
-      (is (= 1 (count institutions)))
-      (is (= {:put-test {:url "http://example.com/put-test"}}
-             institutions)))))
+    (doseq [institution (map (fn [[id m]] (#'institutions/->form m id)) test-institutions)]
+      (is (not (#'institutions/form-errors institution))))))

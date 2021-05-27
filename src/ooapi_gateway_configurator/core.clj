@@ -1,11 +1,11 @@
 (ns ooapi-gateway-configurator.core
   (:gen-class)
   (:require [clojure.java.io :as io]
+            [clojure.string :as string]
             [clojure.tools.logging :as log]
             [environ.core :as environ]
             [ooapi-gateway-configurator.web :as web]
-            [ring.adapter.jetty :refer [run-jetty]]
-            [clojure.string :as string]))
+            [ring.adapter.jetty :refer [run-jetty]]))
 
 (def default-env
   "Settings that can be changed from the environment or java
@@ -63,7 +63,7 @@
   {:jetty {:host  (get-str env :http-host)
            :port  (get-int env :http-port)
            :join? false}
-   :web   {:gateway-config-yaml (get-file env :gateway-config-yaml :existing true)
+   :store {:gateway-config-yaml (get-file env :gateway-config-yaml :existing true)
            :credentials-json    (get-file env :credentials-json :existing true)}
    :auth  {:authorize-uri    (get-str env :auth-authorize-uri :required? true)
            :access-token-uri (get-str env :auth-access-token-uri :required? true)
