@@ -24,6 +24,7 @@
   https://idp.diy.surfconext.nl/showusers.php"
   (:require [clojure.tools.logging :as log]
             [compojure.core :refer [defroutes POST]]
+            [compojure.response :refer [render]]
             [ooapi-gateway-configurator.anti-forgery :refer [anti-forgery-field]]
             [ooapi-gateway-configurator.http :as status]
             [ooapi-gateway-configurator.user-info :as user-info]
@@ -68,12 +69,10 @@
   (get-in request [:oauth2/user-info :conext]))
 
 (defn- member-of?
-  "test if current user is a member of any of the given groups"
-  [request groups]
-  (boolean (some groups (-> request user-info :edumember_is_member_of))))
+  "test if user is a member of any of the given groups"
+  [user-info groups]
+  (boolean (some groups (:edumember_is_member_of user-info))))
 
-;; TODO: return unauthorized status when not logged in at all
-;; - maybe needs to be separate middleware
 (defn wrap-member-of
   "Middleware restricting access to members of `groups`.
   Membership is tested for by matching the `edumember_is_member_of`
@@ -81,11 +80,15 @@
   [handler groups]
   {:pre [(set? groups)]}
   (fn [request]
-    (if (member-of? request groups)
-      (handler request)
-      {:status  status/forbidden
-       :headers {"Content-Type" "text/plain"}
-       :body    "You're not authorized to access this resource"})))
+    (if-let [user (user-info request)]
+      (if (member-of? user groups)
+        (handler request)
+        (->  "You're not authorized to access this resource"
+             (render request)
+            (response/status status/forbidden)))
+      (-> "You're not logged in"
+          (render request)
+          (response/status status/unauthorized)))))
 
 (defn auth-component
   "Login/logout block for html interface"

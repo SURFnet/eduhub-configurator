@@ -27,39 +27,65 @@
               (finally ~close))))
     `(do ~@body)))
 
+(defn- mk-test-handler
+  []
+  (-> (GET "/ok" _
+           {:status status/ok
+            :body   "OK"})
+      (wrap-routes auth/wrap-member-of #{"flintstones"})
+      (auth/wrap-authentication {:authorize-uri    "http://localhost:9991/oidc/authorize"
+                                 :access-token-uri "http://localhost:9991/oidc/token"
+                                 :user-info-uri    "http://localhost:9991/oidc/userinfo"
+                                 :client-id        client-id
+                                 :client-secret    client-secret})
+      (wrap-defaults site-defaults)))
+
+(defn- mk-client
+  "Return a stateful http client (with a cookie store)"
+  []
+  (let [cookies (cookie-store)]
+    (fn do-get
+      ([url opts]
+       (client/get url (assoc opts
+                              :throw-exceptions? false
+                              :cookie-store cookies)))
+      ([url]
+       (do-get url nil)))))
+
+(defn- mk-provider
+  [group]
+  (provider/mk-provider {:client-id client-id :client-secret client-secret
+                         :user-info {:edumember_is_member_of [group]}}))
+
+(defn- run
+  [handler port]
+  (run-jetty handler {:join? false :port port}))
+
 (deftest auth
-  (let [handler (-> (GET "/ok" _
-                         {:status status/ok
-                          :body   "OK"})
-                    (wrap-routes auth/wrap-member-of #{"flintstones"})
-                    (auth/wrap-authentication {:authorize-uri    "http://localhost:9991/oidc/authorize"
-                                               :access-token-uri "http://localhost:9991/oidc/token"
-                                               :user-info-uri    "http://localhost:9991/oidc/userinfo"
-                                               :client-id        client-id
-                                               :client-secret    client-secret})
-                    (wrap-defaults site-defaults))
-
-        cookies (cookie-store)
-        do-get  (fn do-get
-                  ([url opts]
-                   (client/get url (assoc opts
-                                          :throw-exceptions? false
-                                          :cookie-store cookies)))
-                  ([url]
-                   (do-get url nil)))]
-    (with-cleanup [server (run-jetty handler {:join? false :port 9990})
-                   (.stop server)
-
-                   provider (run-jetty (provider/mk-provider {:client-id client-id :client-secret client-secret
-                                                              :user-info {:edumember_is_member_of ["flintstones"]}})
-                                       {:port 9991 :join? false})
-                   (.stop provider)]
-      (testing "forbidden with not logged in"
+  (let [do-get (mk-client)]
+    (with-cleanup [server (run (mk-test-handler) 9990) (.stop server)
+                   provider (run (mk-provider "flintstones") 9991) (.stop provider)]
+      (testing "unauthorized with not logged in"
         (let [response (do-get "http://localhost:9990/ok")]
-          (is (= status/forbidden (:status response)))))
+          (is (= status/unauthorized (:status response)))))
       (testing "logging in"
         (let [response (do-get "http://localhost:9990/oauth2/conext")]
           (is (= status/ok (:status response)))))
       (testing "allowed in now"
         (let [response (do-get "http://localhost:9990/ok")]
           (is (= status/ok (:status response))))))))
+
+(deftest auth-unauthorized
+  (let [handler (-> (mk-test-handler))
+        do-get  (mk-client)]
+    (with-cleanup [server (run handler 9990) (.stop server)
+                   provider (run (mk-provider "simpsons") 9991) (.stop provider)]
+      (testing "unauthorized with not logged in"
+        (let [response (do-get "http://localhost:9990/ok")]
+          (is (= status/unauthorized (:status response)))))
+      (testing "logging in"
+        (let [response (do-get "http://localhost:9990/oauth2/conext")]
+          (is (= status/ok (:status response)))))
+      (testing "forbidden"
+        (let [response (do-get "http://localhost:9990/ok")]
+          (is (= status/forbidden (:status response))))))))

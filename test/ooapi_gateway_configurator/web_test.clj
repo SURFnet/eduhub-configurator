@@ -7,10 +7,11 @@
 
 (def ^:dynamic *app*)
 
-(def app (-> (sut/mk-handler {:auth {:group-ids #{}}}) (wrap-defaults site-defaults)))
+(def app (-> (sut/mk-handler {:auth {:group-ids #{"my-group"}}}) (wrap-defaults site-defaults)))
 
 (defn do-get [uri]
-  (app (request :get uri)))
+  (app (-> (request :get uri)
+           (assoc :oauth2/user-info {:conext {:edumember_is_member_of ["my-group"]}}))))
 
 (deftest handler
   (testing "GET /"
