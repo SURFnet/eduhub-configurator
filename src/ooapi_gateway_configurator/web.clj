@@ -1,6 +1,7 @@
 (ns ooapi-gateway-configurator.web
   (:require [compojure.core :refer [GET routes wrap-routes]]
             [compojure.route :refer [not-found resources]]
+            [ooapi-gateway-configurator.access-control-lists :as access-control-lists]
             [ooapi-gateway-configurator.applications :as applications]
             [ooapi-gateway-configurator.auth :as auth]
             [ooapi-gateway-configurator.auth-pages :as auth-pages]
@@ -16,7 +17,9 @@
    [:li [:a {:href (applications/path)}
          "Applications"]]
    [:li [:a {:href (institutions/path)}
-         "Institutions"]]])
+         "Institutions"]]
+   [:li [:a {:href (access-control-lists/path)}
+         "Access Control Lists"]]])
 
 (defn mk-handler
   [config]
@@ -24,7 +27,8 @@
    (wrap-routes
     (routes (GET "/" req (layout (main-page) req))
             applications/handler
-            institutions/handler)
+            institutions/handler
+            access-control-lists/handler)
     auth/wrap-member-of (get-in config [:auth :group-ids]))
    auth/logout-handler
    (resources "/" {:root "public"})

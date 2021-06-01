@@ -149,7 +149,7 @@
     [:label {:for "id"} "ID "
      [:span.info "only letters, digits, _, : or -"]]
     [:input {:type "text", :pattern "[a-zA-Z0-8_:-]*", :required true
-             :id   "id",   :name    "id",    :value    id}]]
+             :id   "id",   :name    "id",              :value    id}]]
 
    [:div.field
     [:label {:for "url"} "URL"]
@@ -165,8 +165,8 @@
         ": "
         [:input {:name "header-values[]", :value value, :placeholder "Value"}]
         [:input {:type  "submit", :name  (str "delete-header-" i),
-                 :value "🗑",      :title "Delete header", :class "delete-header"}]])
-     [:li [:input {:type "submit", :name "add-header", :value "Add header"}]]]]
+                 :value "🗑",      :title "Delete header", :class "secondary delete-header"}]])
+     [:li [:input {:type "submit", :class "secondary", :name "add-header", :value "Add header"}]]]]
 
    [:div.field
     [:label {:for "auth"} "Authentication"]
@@ -177,7 +177,7 @@
         ({""      "Other"
           "basic" "Basic Authentication"
           "oauth" "OAuth2 Client Credentials"} v)])]
-    [:input {:type "submit", :name "select-auth", :value "Select method"}]]
+    [:input {:type "submit", :class "secondary", :name "select-auth", :value "Select method"}]]
 
    (cond
      (= "basic" auth)

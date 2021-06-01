@@ -86,7 +86,7 @@
         [:input {:type  "text",     :readonly true
                  :id    "password", :name     "password"
                  :value (generate-random-string)}]
-        [:input {:type "submit"
+        [:input {:type "submit",         :class "secondary"
                  :name "reset-password", :value "Reset password"}])]]))
 
 (defn- index-page

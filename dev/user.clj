@@ -7,7 +7,8 @@
   []
   (core/start! (-> env
                    (assoc :gateway-config-yaml "resources/test/gateway.config.yml"
-                          :credentials-json    "resources/test/credentials.json")
+                          :credentials-json    "resources/test/credentials.json"
+                          :pipeline            "test")
                    (core/mk-config))))
 
 (defn stop!

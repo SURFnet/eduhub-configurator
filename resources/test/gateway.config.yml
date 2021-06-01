@@ -98,27 +98,26 @@ pipelines:
               delayAfter: ${RATE_LIMIT_DELAY_AFTER:-5}
               delayMs: ${RATE_LIMIT_DELAY_MS:-500}
 
-
       - gatekeeper:
           - action:
               acls:
                 - app: fred
                   endpoints:
-                    - endpoint: TestBackend
+                    - endpoint: BasicAuthBackend
                       paths: ['/', '/courses', '/courses/:id']
-                    - endpoint: OtherTestBackend
+                    - endpoint: Oauth2Backend
                       paths: ['/', '/courses', '/courses/:id']
                 - app: barney
                   endpoints:
-                    - endpoint: OtherTestBackend
+                    - endpoint: BasicAuthBackend
                       paths: ['/', '/courses', '/courses/:id']
-                    - endpoint: BadCredentialsOathTestBackend
+                    - endpoint: Oauth2Backend
                       paths: ['/']
-                    - endpoint: BadUrlOathTestBackend
+                    - endpoint: ApiKeyBackend
                       paths: ['/']
                 - app: bubbles
                   endpoints:
-                    - endpoint: EchoBackend
+                    - endpoint: ApiKeyBackend
                       paths: ['/']
 
       - response-transformer:

@@ -20,7 +20,8 @@
    :auth-user-info-uri    nil
 
    :gateway-config-yaml nil
-   :credentials-json    nil})
+   :credentials-json    nil
+   :pipeline            nil})
 
 (defn get-env
   [env k & {:keys [required?] :as opts}]
@@ -50,9 +51,9 @@
                         {:option k :value s}))))))
 
 (defn get-file
-  [env k & {:keys [existing]}]
+  [env k & {:keys [existing?]}]
   (let [s (get-env env k)]
-    (when (and existing (or (not s) (not (.exists (io/file s)))))
+    (when (and existing? (or (not s) (not (.exists (io/file s)))))
       (throw (ex-info (str "Configuration option " k " does not refer to an existing file")
                       {:option k :value s})))
     s))
@@ -62,8 +63,9 @@
   {:jetty {:host  (get-str env :http-host)
            :port  (get-int env :http-port)
            :join? false}
-   :store {:gateway-config-yaml (get-file env :gateway-config-yaml :existing true)
-           :credentials-json    (get-file env :credentials-json :existing true)}
+   :store {:gateway-config-yaml (get-file env :gateway-config-yaml :existing? true)
+           :credentials-json    (get-file env :credentials-json :existing? true)
+           :pipeline            (get-str env :pipeline :required? true)}
    :auth  {:authorize-uri    (get-str env :auth-authorize-uri :required? true)
            :access-token-uri (get-str env :auth-access-token-uri :required? true)
            :user-info-uri    (get-str env :auth-user-info-uri :required? true)

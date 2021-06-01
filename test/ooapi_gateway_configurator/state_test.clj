@@ -25,8 +25,20 @@
    :ApiKeyBackend {:url "https://example.com/api-key-backend"
                    :proxyOptions {:headers {:Authorization "Bearer test-api-key"}}}})
 
-(def request {::state/applications applications
-            ::state/institutions institutions})
+(def access-control-lists
+  {:fred    {:BasicAuthBackend #{"/", "/courses", "/courses/:id"}
+             :Oauth2Backend    #{"/", "/courses", "/courses/:id"}
+             :ApiKeyBackend    nil}
+   :barney  {:BasicAuthBackend #{"/", "/courses", "/courses/:id"}
+             :Oauth2Backend    #{"/"}
+             :ApiKeyBackend    #{"/"}}
+   :bubbles {:BasicAuthBackend nil
+             :Oauth2Backend    nil
+             :ApiKeyBackend    #{"/"}}})
+
+(def request {::state/applications         applications
+              ::state/institutions         institutions
+              ::state/access-control-lists access-control-lists})
 
 (deftest wrap
   (let [app (state/wrap #(select-keys % [::state/command]))]
@@ -37,9 +49,9 @@
         (is (= {:passwordSalt "salt"
                 :passwordHash "hash"}
                (-> request
-                   (into {::state/command [::state/create-application {:id           "test"
+                   (assoc ::state/command [::state/create-application {:id           "test"
                                                                        :passwordSalt "salt"
-                                                                       :passwordHash "hash"}]})
+                                                                       :passwordHash "hash"}])
                    (app)
                    (get-in [::state/applications :test])))
             "create a new application"))
@@ -48,47 +60,64 @@
         (is (= {:passwordSalt "new-salt"
                 :passwordHash "new-hash"}
                (-> request
-                   (into {::state/command [::state/update-application "fred" {:id           "fred"
+                   (assoc ::state/command [::state/update-application "fred" {:id           "fred"
                                                                               :passwordSalt "new-salt"
-                                                                              :passwordHash "new-hash"}]})
+                                                                              :passwordHash "new-hash"}])
                    (app)
                    (get-in [::state/applications :fred])))
             "update changes password salt and hash")
-        (let [new-applications (-> request
-                                   (into {::state/command [::state/update-application "fred" {:id "wilma"}]})
-                                   (app)
-                                   (get ::state/applications))]
-          (is (= (:fred applications)
-                 (:wilma new-applications))
+        (let [state    (-> request
+                           (assoc ::state/command [::state/update-application "fred" {:id "wilma"}])
+                           (app))
+              new-apps (::state/applications state)
+              new-acls (::state/access-control-lists state)]
+          (is (and (:wilma new-apps)
+                   (= (:fred applications)
+                      (:wilma new-apps)))
               "update name password data not overwritten")
+          (is (and (:wilma new-acls)
+                   (= (:fred access-control-lists)
+                      (:wilma new-acls)))
+              "access control list application renamed too")
           (is (= #{:wilma :barney :bubbles}
-                 (set (keys new-applications)))
+                 (set (keys new-apps)))
               "fred is replaced by wilma rest is still there"))
         (is (= {:passwordSalt "new-salt"
                 :passwordHash "new-hash"}
                (-> request
-                   (into {::state/command [::state/update-application "fred" {:id           "wilma"
-                                                                              :passwordSalt "new-salt"
-                                                                              :passwordHash "new-hash"}]})
+                   (assoc ::state/command [::state/update-application
+                                           "fred"
+                                           {:id           "wilma"
+                                            :passwordSalt "new-salt"
+                                            :passwordHash "new-hash"}])
                    (app)
                    (get-in [::state/applications :wilma])))
             "update changes both id, password salt and hash"))
 
       (testing "delete-application"
-        (is (= #{:barney :bubbles}
-               (-> request
-                   (into {::state/command [::state/delete-application "fred"]})
-                   (app)
-                   (get ::state/applications)
-                   keys
-                   set)))))
+        (let [state (-> request
+                        (assoc ::state/command [::state/delete-application "fred"])
+                        (app))]
+          (is (= #{:barney :bubbles}
+                 (-> state
+                     (get ::state/applications)
+                     keys
+                     set))
+              "deleted from applications")
+          (is (= #{:barney :bubbles}
+                 (-> state
+                     (get ::state/access-control-lists)
+                     keys
+                     set))
+              "deleted from access-control-lists"))))
 
     (testing "institution commands"
       (testing "create-institution"
         (is (= {:url "https://example.com"}
                (-> request
-                   (into {::state/command [::state/create-institution {:id  "test"
-                                                                       :url "https://example.com"}]})
+                   (assoc ::state/command [::state/create-institution
+                                           {:id  "test"
+                                            :url "https://example.com"}])
                    (app)
                    (get-in [::state/institutions :test])))
             "create a new institution"))
@@ -96,28 +125,48 @@
       (testing "update-institution"
         (is (= {:url "https://other.example.com"}
                (-> request
-                   (into {::state/command [::state/update-institution "ApiKeyBackend" {:id  "ApiKeyBackend"
-                                                                                       :url "https://other.example.com"}]})
+                   (assoc ::state/command [::state/update-institution
+                                           "ApiKeyBackend"
+                                           {:id  "ApiKeyBackend"
+                                            :url "https://other.example.com"}])
                    (app)
                    (get-in [::state/institutions :ApiKeyBackend])))
             "update changes url")
-        (let [new-institutions (-> request
-                                   (into {::state/command [::state/update-institution "ApiKeyBackend" {:id  "test"
-                                                                                                       :url "https://other.example.com"}]})
-                                   (app)
-                                   (get ::state/institutions))]
+        (let [state     (-> request
+                            (assoc ::state/command [::state/update-institution
+                                                    "ApiKeyBackend"
+                                                    {:id  "test"
+                                                     :url "https://other.example.com"}])
+                            (app))
+              new-insts (::state/institutions state)
+              new-acls  (::state/access-control-lists state)]
           (is (= #{:test :BasicAuthBackend :Oauth2Backend}
-                 (set (keys new-institutions)))
+                 (set (keys new-insts)))
               "ApiKeyBackend is replaced by test rest is still there")
+          (is (= #{:test :BasicAuthBackend :Oauth2Backend}
+                 (-> new-acls :fred keys set))
+              "access control list institution renamed too")
           (is (= {:url "https://other.example.com"}
-                 (get new-institutions :test))
+                 (get new-insts :test))
               "new updated version present")))
 
       (testing "delete-institution"
-        (is (= #{:BasicAuthBackend :Oauth2Backend}
+        (let [state     (-> request
+                            (assoc ::state/command [::state/delete-institution
+                                                    "ApiKeyBackend"])
+                            (app))
+              new-insts (::state/institutions state)
+              new-acls  (::state/access-control-lists state)]
+          (is (= #{:BasicAuthBackend :Oauth2Backend}
+                 (-> new-insts keys set)))
+          (is (= #{:BasicAuthBackend :Oauth2Backend}
+                 (-> new-acls :fred keys set)))))
+
+      (testing "update-access-control-list-for-application"
+        (is (= #{"/"}
                (-> request
-                   (into {::state/command [::state/delete-institution "ApiKeyBackend"]})
+                   (assoc ::state/command [::state/update-access-control-list-for-application
+                                           "fred"
+                                           {:BasicAuthBackend #{"/"}}])
                    (app)
-                   (get ::state/institutions)
-                   keys
-                   set)))))))
+                   (get-in [::state/access-control-lists :fred :BasicAuthBackend]))))))))
