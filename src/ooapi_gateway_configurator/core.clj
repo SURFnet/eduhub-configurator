@@ -10,18 +10,17 @@
 (def default-env
   "Settings that can be changed from the environment or java
   properties. Values are all strings or nil (unset)."
-  {:http-host             "localhost"
-   :http-port             "8080"
+  {:http-host "localhost"
+   :http-port "8080"
+
    :auth-authorize-uri    nil
    :auth-access-token-uri nil
    :auth-client-id        nil
    :auth-client-secret    nil
    :auth-user-info-uri    nil
 
-   ;; TODO remove this
-   :gateway-config-yaml "resources/test/gateway.config.yml"
-   ;; TODO remove this
-   :credentials-json    "resources/test/credentials.json"})
+   :gateway-config-yaml nil
+   :credentials-json    nil})
 
 (defn get-env
   [env k & {:keys [required?] :as opts}]

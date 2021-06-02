@@ -5,7 +5,10 @@
 
 (defn start!
   []
-  (core/start! (core/mk-config env)))
+  (core/start! (-> env
+                   (assoc :gateway-config-yaml "resources/test/gateway.config.yml"
+                          :credentials-json    "resources/test/credentials.json")
+                   (core/mk-config))))
 
 (defn stop!
   []
