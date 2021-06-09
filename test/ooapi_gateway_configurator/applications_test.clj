@@ -22,15 +22,18 @@
 (defn do-post [uri & [params]]
   (*app* (request :post uri params)))
 
-(deftest do-index
-  (testing "GET /applications"
-    (let [res (do-get "/applications")]
+(defn do-delete [uri & [params]]
+  (*app* (request :delete uri params)))
+
+(deftest index-page
+  (testing "GET /applications/"
+    (let [res (do-get "/applications/")]
       (is (= http/ok (:status res))
           "OK")
       (is (re-find #"fred" (:body res))
           "lists fred"))))
 
-(deftest do-detail
+(deftest detail-page
   (testing "GET /applications/fred"
     (is (= http/not-found (:status (do-get "/applications/DoesNotExist")))
         "Not Found")
@@ -40,14 +43,14 @@
       (is (re-find #"fred" (:body res))
           "includes application ID"))))
 
-(deftest do-delete
-  (testing "POST /applications/fred/delete"
-    (is (= http/not-found (:status (do-post "/applications/DoesNotExist/delete")))
+(deftest delete-application
+  (testing "POST /applications/fred"
+    (is (= http/not-found (:status (do-delete "/applications/DoesNotExist")))
         "Not Found")
-    (let [res (do-post "/applications/fred/delete")]
+    (let [res (do-delete "/applications/fred")]
       (is (= http/see-other (:status res))
           "see other")
-      (is (= "http://localhost/applications"
+      (is (= "http://localhost/applications/"
              (-> res :headers (get "Location")))
           "redirected back to applications list")
       (is (:flash res)
@@ -56,15 +59,15 @@
              (-> res ::state/command))
           "has delete-application command for fred"))))
 
-(deftest do-update
-  (testing "POST /applications/fred/update"
-    (is (= http/not-found (:status (do-post "/applications/DoesNotExist/update")))
+(deftest update-application
+  (testing "POST /applications/fred"
+    (is (= http/not-found (:status (do-post "/applications/DoesNotExist")))
         "Not Found")
-    (let [res (do-post "/applications/fred/update"
+    (let [res (do-post "/applications/fred"
                        {:id "betty"})]
       (is (= http/see-other (:status res))
           "see other")
-      (is (= "http://localhost/applications"
+      (is (= "http://localhost/applications/"
              (-> res :headers (get "Location")))
           "redirected back to applications list")
       (is (:flash res)
@@ -74,7 +77,7 @@
           "has update-application command for fred")))
 
   (testing "errors"
-    (let [res (do-post "/applications/fred/update"
+    (let [res (do-post "/applications/fred"
                        {:id ""})]
       (is (= http/not-acceptable (:status res))
           "not acceptable")
@@ -82,7 +85,7 @@
           "includes error message")))
 
   (testing "reset password"
-    (let [res (do-post "/applications/fred/update"
+    (let [res (do-post "/applications/fred"
                        {:id             "fred"
                         :reset-password ".."})]
       (is (= http/ok (:status res))
@@ -90,7 +93,7 @@
       (is (re-find #"<input [^>]*?name=\"password\"" (:body res))
           "has password input"))))
 
-(deftest do-create
+(deftest new-application
   (testing "GET /applications/new"
     (let [res (do-get "/applications/new")]
       (is (= http/ok (:status res))
@@ -98,13 +101,13 @@
       (is (re-find #"New application" (:body res))
           "includes header")))
 
-  (testing "POST /applications/create"
-    (let [res (do-post "/applications/create"
+  (testing "POST /applications/new"
+    (let [res (do-post "/applications/new"
                        {:id       "test"
                         :password ".."})]
       (is (= http/see-other (:status res))
           "see other")
-      (is (= "http://localhost/applications" (-> res :headers (get "Location")))
+      (is (= "http://localhost/applications/" (-> res :headers (get "Location")))
           "redirected back to applications list")
       (is (:flash res)
           "has a message about creation")

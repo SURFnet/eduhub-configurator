@@ -23,18 +23,6 @@
           access-control-list
           (keys institutions)))
 
-(defn path
-  "Path to an application resource."
-  ([] "/access-control-lists")
-  ([application-id-or-action]
-   {:pre [(or (string? application-id-or-action) (keyword? application-id-or-action))]}
-   (str "/access-control-lists/" (url-encode (name application-id-or-action))))
-  ([application-id action]
-   {:pre [(string? application-id)
-          (keyword? action)]}
-   (str "/access-control-lists/" (url-encode application-id)
-        "/" (url-encode (name action)))))
-
 (defn- form [{:keys [access-control-list]} api-paths]
   [[:div.field]
    (for [[institution paths] (sort-by key access-control-list)]
@@ -80,43 +68,33 @@
             (str "document.getElementById('ut-" inst-id "').style.display = 'inherit';"
                  "document.getElementById('up-" inst-id "').style.display = 'none';"))])]))])
 
-(defn- index-page
-  "List of access-control-lists hiccup."
-  [access-control-lists]
-  [:div
-   [:h2 "Access Control Lists per Application"]
-   [:ul
-    (for [application-id (->> access-control-lists (map :application-id) (sort))]
-      [:li [:a {:href (path application-id)} (escape-html application-id)]])]])
-
 (defn- detail-page
   "Application detail hiccup."
   [{:keys [application-id] :as access-control-list} api-paths & {:keys [scroll-to]}]
   [:div.detail
    [:h2 "Access Control List: " application-id]
 
-   [:form {:action (path application-id :update)
-           :method :post}
+   [:form {:method :post}
     [:input {:type "submit", :style "display: none"}] ;; ensure enter key submits
     (anti-forgery-field)
 
     (into [:fieldset] (form access-control-list api-paths))
 
     [:div.actions
-     [:button {:type "submit"} "Update"]
+     [:button {:type "submit", :class "primary"} "Update"]
      " "
-     [:a {:href (path), :class "button"} "Cancel"]]]
+     [:a {:href (str "../" (url-encode application-id)), :class "button"} "Cancel"]]]
 
    (when scroll-to
      (javascript-tag (str "document.getElementById(" (pr-str scroll-to) ").scrollIntoView()")))])
 
 (defn- do-update
   "Handle update request."
-  [{:keys                    [params
+  [{:keys        [params
                               ::state/api-paths
                               ::state/institutions]
-    {:keys [application-id]} :params
-    :as                      req}]
+    {:keys [id]} :params
+    :as          req}]
   (let [select-all          (->> params
                                  keys
                                  (keep #(last (re-find #"select-all-(.*)" (name %))))
@@ -129,47 +107,42 @@
     (cond
       select-all
       (-> access-control-list
-          (->form application-id)
+          (->form id)
           (assoc-in [:access-control-list (keyword select-all)] api-paths)
           (detail-page api-paths :scroll-to (str "institution-" select-all))
           (layout req))
 
       select-none
       (-> access-control-list
-          (->form application-id)
+          (->form id)
           (assoc-in [:access-control-list (keyword select-none)] #{})
           (detail-page api-paths :scroll-to (str "institution-" select-none))
           (layout req))
 
       :else
-      (-> (path)
+      (-> (str "../" (url-encode id))
           (redirect :see-other)
           (assoc ::state/command [::state/update-access-control-list-for-application
-                                  application-id access-control-list])
-          (assoc :flash (str "Updated access-control-list for application '" application-id "'"))))))
+                                  id access-control-list])
+          (assoc :flash (str "Updated access-control-list for application '" id "'"))))))
 
 (defroutes handler
-  (GET "/access-control-lists" {:keys [::state/access-control-lists] :as req}
-       (-> (map (fn [[application-id m]] (->form m application-id)) access-control-lists)
-           (index-page)
-           (layout req)))
-
-  (GET "/access-control-lists/:application-id" {:keys                    [::state/access-control-lists
-                                                                          ::state/api-paths]
-                                                {:keys [application-id]} :params
-                                                :as                      req}
-       (if-let [access-control-list (get access-control-lists (keyword application-id))]
+  (GET "/applications/:id/access-control-list" {:keys        [::state/access-control-lists
+                                                              ::state/api-paths]
+                                                {:keys [id]} :params
+                                                :as          req}
+       (if-let [access-control-list (get access-control-lists (keyword id))]
          (-> access-control-list
-             (->form application-id)
+             (->form id)
              (detail-page api-paths)
              (layout req))
-         (not-found (str "Application '" application-id "' not found..")
+         (not-found (str "Application '" id "' not found..")
                     req)))
 
-  (POST "/access-control-lists/:application-id/update" {:keys                    [::state/access-control-lists]
-                                                        {:keys [application-id]} :params
-                                                        :as                      req}
-        (if (get access-control-lists (keyword application-id))
+  (POST "/applications/:id/access-control-list" {:keys        [::state/access-control-lists]
+                                                 {:keys [id]} :params
+                                                 :as          req}
+        (if (get access-control-lists (keyword id))
           (do-update req)
-          (not-found (str "Application '" application-id "' not found..")
+          (not-found (str "Application '" id "' not found..")
                      req))))

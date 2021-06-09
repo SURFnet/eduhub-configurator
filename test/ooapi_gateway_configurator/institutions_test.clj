@@ -22,15 +22,18 @@
 (defn do-post [uri & [params]]
   (*app* (request :post uri params)))
 
-(deftest do-index
-  (testing "GET /institutions"
-    (let [res (do-get "/institutions")]
+(defn do-delete [uri & [params]]
+  (*app* (request :delete uri params)))
+
+(deftest index-page
+  (testing "GET /institutions/"
+    (let [res (do-get "/institutions/")]
       (is (= http/ok (:status res))
           "OK")
       (is (re-find #"BasicAuthBackend" (:body res))
           "lists BasicAuthBackend"))))
 
-(deftest do-detail
+(deftest detail-page
   (testing "GET /institutions/BasicAuthBackend"
     (is (= http/not-found (:status (do-get "/institutions/DoesNotExist")))
         "Not Found")
@@ -42,25 +45,25 @@
       (is (re-find #"https://example.com/test-backend" (:body res))
           "include institution URL"))))
 
-(deftest do-delete
-  (testing "POST /institutions/BasicAuthBackend/delete"
-    (is (= http/not-found (:status (do-post "/institutions/DoesNotExist/delete")))
+(deftest delete-institution
+  (testing "DELETE /institutions/BasicAuthBackend"
+    (is (= http/not-found (:status (do-delete "/institutions/DoesNotExist")))
         "Not Found")
-    (let [res (do-post "/institutions/BasicAuthBackend/delete")]
+    (let [res (do-delete "/institutions/BasicAuthBackend")]
       (is (= http/see-other (:status res))
           "see other")
-      (is (= "http://localhost/institutions" (-> res :headers (get "Location")))
+      (is (= "http://localhost/institutions/" (-> res :headers (get "Location")))
           "redirected back to institutions list")
       (is (:flash res)
           "has a message about deletion")
       (is (= [::state/delete-institution "BasicAuthBackend"] (-> res ::state/command))
           "has delete-application command for BasicAuthBackend"))))
 
-(deftest do-update
-  (testing "POST /institutions/BasicAuthBackend/update"
-    (is (= http/not-found (:status (do-post "/institutions/DoesNotExist/update")))
+(deftest update-institution
+  (testing "POST /institutions/BasicAuthBackend"
+    (is (= http/not-found (:status (do-post "/institutions/DoesNotExist")))
         "Not Found")
-    (let [res (do-post "/institutions/BasicAuthBackend/update"
+    (let [res (do-post "/institutions/BasicAuthBackend"
                        {:id              "test"
                         :url             "https://example.com/test"
                         :auth            "basic"
@@ -70,7 +73,7 @@
                         :header-values   ["1" "2" ""]})]
       (is (= http/see-other (:status res))
           "see other")
-      (is (= "http://localhost/institutions" (-> res :headers (get "Location")))
+      (is (= "http://localhost/institutions/" (-> res :headers (get "Location")))
           "redirected back to institutions list")
       (is (:flash res)
           "has a message about update")
@@ -83,7 +86,7 @@
           "has update-institution command for BasicAuthBackend")))
 
   (testing "errors"
-    (let [res (do-post "/institutions/BasicAuthBackend/update"
+    (let [res (do-post "/institutions/BasicAuthBackend"
                        {:id  "test"
                         :url "bad"})]
       (is (= http/not-acceptable (:status res))
@@ -92,7 +95,7 @@
           "includes error message")))
 
   (testing "add header"
-    (let [res (do-post "/institutions/BasicAuthBackend/update"
+    (let [res (do-post "/institutions/BasicAuthBackend"
                        {:id         "test"
                         :url        "https://example.com/test"
                         :add-header ".."})]
@@ -102,7 +105,7 @@
           "has header input")))
 
   (testing "delete header"
-    (let [res (do-post "/institutions/BasicAuthBackend/update"
+    (let [res (do-post "/institutions/BasicAuthBackend"
                        {:id              "test"
                         :url             "https://example.com/test"
                         :header-names    ["First" "Second"]
@@ -119,7 +122,7 @@
             "has header-name input"))))
 
   (testing "select-auth"
-    (let [res (do-post "/institutions/BasicAuthBackend/update"
+    (let [res (do-post "/institutions/BasicAuthBackend"
                        {:id          "test"
                         :url         "https://example.com/test"
                         :auth        "basic"
@@ -128,7 +131,7 @@
           "OK")
       (is (re-find #"<input.*?name=\"basic-auth-user\"" (:body res))
           "has basic auth input"))
-    (let [res (do-post "/institutions/BasicAuthBackend/update"
+    (let [res (do-post "/institutions/BasicAuthBackend"
                        {:id          "test"
                         :url         "https://example.com/test"
                         :auth        "oauth"
@@ -138,7 +141,7 @@
       (is (re-find #"<input.*?name=\"oauth-url\"" (:body res))
           "has oauth URL input"))))
 
-(deftest do-create
+(deftest new-institution
   (testing "GET /institutions/new"
     (let [res (do-get "/institutions/new")]
       (is (= http/ok (:status res))
@@ -146,8 +149,8 @@
       (is (re-find #"New institution" (:body res))
           "includes header")))
 
-  (testing "POST /institutions/create"
-    (let [res (do-post "/institutions/create"
+  (testing "POST /institutions/new"
+    (let [res (do-post "/institutions/new"
                        {:id                  "test"
                         :url                 "https://example.com/test"
                         :auth                "oauth"
@@ -156,7 +159,7 @@
                         :oauth-client-secret "wilma"})]
       (is (= http/see-other (:status res))
           "see other")
-      (is (= "http://localhost/institutions" (-> res :headers (get "Location")))
+      (is (= "http://localhost/institutions/" (-> res :headers (get "Location")))
           "redirected back to institutions list")
       (is (:flash res)
           "has a message about creation")

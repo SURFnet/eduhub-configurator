@@ -27,19 +27,11 @@
 (defn do-post [uri & [params]]
   (*app* (request :post uri params)))
 
-(deftest do-index
-  (testing "GET /access-control-lists"
-    (let [res (do-get "/access-control-lists")]
-      (is (= http/ok (:status res))
-          "OK")
-      (is (re-find #"fred" (:body res))
-          "lists fred"))))
-
 (deftest do-detail
-  (testing "GET /access-control-lists/fred"
-    (is (= http/not-found (:status (do-get "/access-control-lists/DoesNotExist")))
+  (testing "GET /applications/fred/access-control-list"
+    (is (= http/not-found (:status (do-get "/applications/DoesNotExist/access-control-list")))
         "Not Found")
-    (let [res (do-get "/access-control-lists/fred")]
+    (let [res (do-get "/applications/fred/access-control-list")]
       (is (= http/ok (:status res))
           "OK")
       (is (re-find #"fred" (:body res))
@@ -48,13 +40,13 @@
           "includes institution ID"))))
 
 (deftest do-update
-  (testing "POST /access-control-lists/fred/update"
-    (is (= http/not-found (:status (do-post "/access-control-lists/DoesNotExist/update")))
+  (testing "POST /applications/fred/access-control-list"
+    (is (= http/not-found (:status (do-post "/applications/DoesNotExist/access-control-list")))
         "Not Found")
-    (let [res (do-post "/access-control-lists/fred/update" {"access-control-list[BasicAuthBackend][]" "/"})]
+    (let [res (do-post "/applications/fred/access-control-list" {"access-control-list[BasicAuthBackend][]" "/"})]
       (is (= http/see-other (:status res))
           "see other")
-      (is (= "http://localhost/access-control-lists" (-> res :headers (get "Location")))
+      (is (= "http://localhost/applications/fred" (-> res :headers (get "Location")))
           "redirected back to access-control-lists list")
       (is (:flash res)
           "has a message about update")
@@ -65,7 +57,7 @@
           "has update-access-control-list-for-application command for fred")))
 
   (testing "select-all"
-    (let [res (do-post "/access-control-lists/fred/update"
+    (let [res (do-post "/applications/fred/access-control-list"
                        {"select-all-BasicAuthBackend"          ".."
                         "access-control-list[ApiKeyBackend][]" "/"})]
       (is (= http/ok (:status res))
@@ -85,7 +77,7 @@
           "only 1 checked for ApiKeyBackend")))
 
   (testing "select-none"
-    (let [res (do-post "/access-control-lists/fred/update"
+    (let [res (do-post "/applications/fred/access-control-list"
                        {"select-none-BasicAuthBackend"          ".."
                         "access-control-list[BasicAuthBackend][]" "/"
                         "access-control-list[ApiKeyBackend][]" "/"})]

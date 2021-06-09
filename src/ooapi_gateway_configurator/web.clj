@@ -12,16 +12,14 @@
             [ring.middleware.defaults :refer [site-defaults wrap-defaults]]))
 
 (defn main-page
-  [request]
+  [req]
   [:div.main-page
    [:ul
-    [:li [:a {:href (applications/path)}
+    [:li [:a {:href "applications/"}
           "Applications"]]
-    [:li [:a {:href (institutions/path)}
-          "Institutions"]]
-    [:li [:a {:href (access-control-lists/path)}
-          "Access Control Lists"]]]
-   (store/commit-component request)])
+    [:li [:a {:href "institutions/"}
+          "Institutions"]]]
+   (store/commit-component req)])
 
 (defn mk-handler
   [config]

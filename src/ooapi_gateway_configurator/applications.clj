@@ -1,6 +1,6 @@
 (ns ooapi-gateway-configurator.applications
   (:require [clojure.string :as s]
-            [compojure.core :refer [defroutes GET POST]]
+            [compojure.core :refer [defroutes DELETE GET POST]]
             [compojure.response :refer [render]]
             [hiccup.util :refer [escape-html]]
             [ooapi-gateway-configurator.anti-forgery :refer [anti-forgery-field]]
@@ -47,22 +47,13 @@
     (s/blank? id)
     (conj "ID can not be blank")
 
+    (= "new" id)
+    (conj "ID can not be 'new' (reserved word)")
+
     (and id (not (re-matches #"[a-zA-Z0-8_:-]*" id)))
     (conj "ID can only contain letters, digits, _, : or -.")
 
     :finally seq))
-
-(defn path
-  "Path to an application resource."
-  ([] "/applications")
-  ([id-or-action]
-   {:pre [(or (string? id-or-action) (keyword? id-or-action))]}
-   (str "/applications/" (url-encode (name id-or-action))))
-  ([id action]
-   {:pre [(string? id)
-          (keyword? action)]}
-   (str "/applications/" (url-encode id)
-        "/" (url-encode (name action)))))
 
 (defn- form [{:keys [id orig-id reset-password]}]
   (let [show-password (or (not orig-id) reset-password)]
@@ -90,37 +81,42 @@
    [:h2 "Applications"]
    [:ul
     (for [id (->> applications (map :id) (sort))]
-      [:li [:a {:href (path id)} (escape-html id)]])]
-   [:a {:href (path :new), :class "button"} "New application"]])
+      [:li [:a {:href (url-encode id)} (escape-html id)]])]
+   [:a {:href :new, :class "button"} "New application"]])
 
 (defn- detail-page
   "Application detail hiccup."
   [{:keys [orig-id] :as application}]
   [:div.detail
+   (when orig-id
+     [:div.top-actions
+      [:a {:href (str orig-id "/access-control-list")
+           :class "button secondary access-control-list"}
+       "Access Control List"]])
+
    (if orig-id
      [:h2 "Application: " (escape-html orig-id)]
      [:h2 "New application"])
 
-   [:form {:action (if orig-id (path orig-id :update) (path :create))
-           :method :post}
+   [:form {:method :post}
     [:input {:type "submit", :style "display: none"}] ;; ensure enter key submits
     (anti-forgery-field)
 
     (into [:fieldset] (form application))
 
     [:div.actions
-     [:button {:type "submit"} (if orig-id "Update" "Create")]
+     [:button {:type "submit", :class "primary"} (if orig-id "Update" "Create")]
      " "
-     [:a {:href (path), :class "button"} "Cancel"]]]
+     [:a {:href ".", :class "button"} "Cancel"]]]
 
    (when orig-id
-     [:form {:action (path orig-id :delete)
-             :method :post
-             :class "delete"}
-      (anti-forgery-field)
-      [:button {:type "submit"
-                :onclick (confirm-js :delete "application" orig-id)}
-       "Delete"]])])
+     [:div.bottom-actions
+      [:form {:method :post, :class :delete}
+       [:input {:type :hidden, :name :_method, :value :delete}]
+       (anti-forgery-field)
+       [:button {:type :submit
+                 :onclick (confirm-js :delete "application" orig-id)}
+        "Delete"]]])])
 
 (defn- create-or-update
   "Handle create or update request."
@@ -150,7 +146,7 @@
 
       :else
       (let [application (form-> params)]
-        (-> (path)
+        (-> "."
             (redirect :see-other)
             (assoc ::state/command (if orig-id
                                      [::state/update-application orig-id application]
@@ -158,7 +154,7 @@
             (assoc :flash (str (if orig-id "Updated" "Created") " application '" id "'")))))))
 
 (defroutes handler
-  (GET "/applications" {:keys [::state/applications] :as req}
+  (GET "/applications/" {:keys [::state/applications] :as req}
        (-> (map (fn [[id m]] (->form m id)) applications)
            (index-page)
            (layout req)))
@@ -168,7 +164,7 @@
            (detail-page)
            (layout req)))
 
-  (POST "/applications/create" req
+  (POST "/applications/new" req
         (create-or-update req))
 
   (GET "/applications/:id" {:keys        [::state/applications]
@@ -182,21 +178,21 @@
          (not-found (str "Application '" id "' not found..")
                     req)))
 
-  (POST "/applications/:id/delete" {:keys        [::state/applications]
-                                    {:keys [id]} :params
-                                    :as req}
-        (if (get applications (keyword id))
-          (-> "/applications"
-              (redirect :see-other)
-              (assoc ::state/command [::state/delete-application id])
-              (assoc :flash (str "Deleted application '" id "'")))
-          (not-found (str "Application '" id "' not found..")
-                     req)))
-
-  (POST "/applications/:orig-id/update" {:keys             [::state/applications]
-                                         {:keys [orig-id]} :params
-                                         :as               req}
+  (POST "/applications/:orig-id" {:keys             [::state/applications]
+                                  {:keys [orig-id]} :params
+                                  :as               req}
         (if (get applications (keyword orig-id))
           (create-or-update req)
           (not-found (str "Application '" orig-id "' not found..")
-                     req))))
+                     req)))
+
+  (DELETE "/applications/:id" {:keys        [::state/applications]
+                               {:keys [id]} :params
+                               :as          req}
+          (if (get applications (keyword id))
+            (-> "."
+                (redirect :see-other)
+                (assoc ::state/command [::state/delete-application id])
+                (assoc :flash (str "Deleted application '" id "'")))
+            (not-found (str "Application '" id "' not found..")
+                       req))))

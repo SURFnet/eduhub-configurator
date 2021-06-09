@@ -110,7 +110,7 @@ a.button:hover, button:hover, input[type=submit]:hover {
 a.button:focus, button:focus, input[type=submit]:focus {
     box-shadow: 0 0 2px rgba(0,0,0,.5);
 }
-a.button.primary, button.primary, button[type=submit] {
+a.button.primary, button.primary {
     font-weight: bold;
 }
 
@@ -146,15 +146,20 @@ fieldset {
     padding: 2em 0 0 0;
 }
 
-.delete button {
+.top-actions {
+    float: right;
+    margin-top: .25rem;
+}
+.bottom-actions {
     position: absolute;
     bottom: 0;
     right: 0;
     margin-right: 0;
+}
+.delete button {
     color: #800;
     background: #fcc;
     border: solid 1px #faa;
-    font-weight: inherit;
 }
 .delete button:hover {
     background: #fbb;
@@ -208,5 +213,4 @@ label.path {
 
 .commit-status button {
     float: right;
-    font-weight: inherit;
 }

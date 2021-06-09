@@ -1,6 +1,6 @@
 (ns ooapi-gateway-configurator.institutions
   (:require [clojure.string :as s]
-            [compojure.core :refer [defroutes GET POST]]
+            [compojure.core :refer [defroutes DELETE GET POST]]
             [compojure.response :refer [render]]
             [hiccup.util :refer [escape-html]]
             [ooapi-gateway-configurator.anti-forgery :refer [anti-forgery-field]]
@@ -84,6 +84,9 @@
     (s/blank? id)
     (conj "ID can not be blank")
 
+    (= "new" id)
+    (conj "ID can not be 'new' (reserved word)")
+
     (and id (not (re-matches #"[a-zA-Z0-8_:-]*" id)))
     (conj "ID can only contain letters, digits, _, : or -.")
 
@@ -126,18 +129,6 @@
     (conj "Header name already taken")
 
     :finally seq))
-
-(defn path
-  "Path to an institution resource."
-  ([] "/institutions")
-  ([id-or-action]
-   {:pre [(or (string? id-or-action) (keyword? id-or-action))]}
-   (str "/institutions/" (url-encode (name id-or-action))))
-  ([id action]
-   {:pre [(string? id)
-          (keyword? action)]}
-   (str "/institutions/" (url-encode id)
-        "/" (url-encode (name action)))))
 
 (defn- form
   "Form hiccup for institution params."
@@ -225,8 +216,8 @@
    [:h2 "Institutions"]
    [:ul
     (for [id (->> institutions (map :id) (sort))]
-      [:li [:a {:href (path id)} (escape-html id)]])]
-   [:a {:href (path :new), :class "button"} "New institution"]])
+      [:li [:a {:href (url-encode id)} (escape-html id)]])]
+   [:a {:href :new, :class "button"} "New institution"]])
 
 (defn- detail-page
   "Institution detail hiccup."
@@ -236,22 +227,24 @@
      [:h2 "Institution: " (escape-html orig-id)]
      [:h2 "New institution"])
 
-   [:form {:action   (if orig-id (path orig-id :update) (path :create))
-           :method   :post}
+   [:form {:method   :post}
     [:input {:type "submit", :style "display: none"}] ;; ensure enter key submits
     (anti-forgery-field)
 
     (into [:fieldset] (form institution))
 
     [:div.actions
-     [:button {:type "submit"} (if orig-id "Update" "Create")]
+     [:button {:type "submit", :class "primary"} (if orig-id "Update" "Create")]
      " "
-     [:a {:href (path), :class "button"} "Cancel"]]]
+     [:a {:href ".", :class "button"} "Cancel"]]]
 
-   (when orig-id
-     [:form {:action (path orig-id :delete), :method :post, :class "delete"}
-      (anti-forgery-field)
-      [:button {:type "submit", :onclick (confirm-js :delete "institution" orig-id)} "Delete"]])])
+   [:div.bottom-actions
+    [:form {:method :post, :class :delete}
+     [:input {:type :hidden, :name :_method, :value :delete}]
+     (anti-forgery-field)
+     [:button {:type :submit
+               :onclick (confirm-js :delete "institution" orig-id)}
+      "Delete"]]]])
 
 (defn- delete-header-fn-from-params
   "Find parameter named \"delete-header-X\" were X is a number and
@@ -304,7 +297,7 @@
 
       :else
       (let [institution (form-> params)]
-        (-> (path)
+        (-> "."
             (redirect :see-other)
             (assoc ::state/command (if orig-id
                                      [::state/update-institution orig-id institution]
@@ -314,7 +307,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defroutes handler
-  (GET "/institutions" {:keys [::state/institutions] :as req}
+  (GET "/institutions/" {:keys [::state/institutions] :as req}
        (-> (map (fn [[id m]] (->form m id)) institutions)
            (index-page)
            (layout req)))
@@ -324,7 +317,7 @@
            (detail-page)
            (layout req)))
 
-  (POST "/institutions/create" req
+  (POST "/institutions/new" req
         (create-or-update req))
 
   (GET "/institutions/:id" {:keys        [::state/institutions]
@@ -338,21 +331,21 @@
          (not-found (str "Institution '" id "' not found..")
                     req)))
 
-  (POST "/institutions/:id/delete" {:keys        [::state/institutions]
-                                    {:keys [id]} :params
-                                    :as req}
-        (if (get institutions (keyword id))
-          (-> "/institutions"
-              (redirect :see-other)
-              (assoc ::state/command [::state/delete-institution id])
-              (assoc :flash (str "Deleted institution '" id "'")))
-          (not-found (str "Institution '" id "' not found..")
-                     req)))
-
-  (POST "/institutions/:orig-id/update" {:keys             [::state/institutions]
+  (POST "/institutions/:orig-id" {:keys             [::state/institutions]
                                          {:keys [orig-id]} :params
-                                         :as req}
+                                         :as               req}
         (if (get institutions (keyword orig-id))
           (create-or-update req)
           (not-found (str "Institution '" orig-id "' not found..")
-                     req))))
+                     req)))
+
+  (DELETE "/institutions/:id" {:keys        [::state/institutions]
+                               {:keys [id]} :params
+                               :as          req}
+          (if (get institutions (keyword id))
+            (-> "."
+                (redirect :see-other)
+                (assoc ::state/command [::state/delete-institution id])
+                (assoc :flash (str "Deleted institution '" id "'")))
+            (not-found (str "Institution '" id "' not found..")
+                       req))))
