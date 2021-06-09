@@ -4,18 +4,12 @@
             [compojure.response :refer [render]]
             [hiccup.util :refer [escape-html]]
             [ooapi-gateway-configurator.anti-forgery :refer [anti-forgery-field]]
+            [ooapi-gateway-configurator.digest :as digest]
             [ooapi-gateway-configurator.html :refer [confirm-js layout not-found]]
             [ooapi-gateway-configurator.http :as http]
             [ooapi-gateway-configurator.state :as state]
             [ring.util.codec :refer [url-encode]]
-            [ring.util.response :refer [redirect status]])
-  (:import java.security.MessageDigest))
-
-(defn- sha256
-  "Get SHA-256 digest of string as a byte array."
-  [s]
-  (.digest (MessageDigest/getInstance "SHA-256")
-           (.getBytes s "UTF-8")))
+            [ring.util.response :refer [redirect status]]))
 
 (defn- hex
   "Transform byte array into a hex string."
@@ -30,7 +24,7 @@
 (defn- hash-password
   "Hash given password with salt using SHA-256."
   [pass salt]
-  (-> (str pass "-" salt) sha256 hex))
+  (-> (str pass "-" salt) digest/sha256 hex))
 
 (defn- ->form
   [{:keys [passwordSalt passwordHash]} id]
