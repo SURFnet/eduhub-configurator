@@ -1,24 +1,30 @@
 (ns ooapi-gateway-configurator.store
   (:require [clj-yaml.core :as yaml]
             [clojure.data.json :as json]
-            [ooapi-gateway-configurator.state :as state]))
+            [clojure.java.io :as io]
+            [ooapi-gateway-configurator.anti-forgery :refer [anti-forgery-field]]
+            [ooapi-gateway-configurator.html :as html]
+            [ooapi-gateway-configurator.state :as state]
+            [ooapi-gateway-configurator.store :as store]
+            [ooapi-gateway-configurator.versioning :as versioning]
+            [ring.util.response :as response])
+  (:import java.time.Instant))
 
-(defn- slurp-json [json-file]
-  (-> json-file (slurp) (json/read-str :key-fn keyword)))
+(defn- checkout-json [json-file]
+  (versioning/checkout json-file #(json/read-str % :key-fn keyword)))
 
-(defn- spit-json [data json-file]
-  (spit json-file (json/write-str data :key-fn name)))
-
-(defn- slurp-yaml [yaml-file]
-  (-> yaml-file (slurp) (yaml/parse-string)))
-
-(defn- split-yaml [data yaml-file]
-  (spit yaml-file (yaml/generate-string data)))
+(defn- checkout-yaml [yaml-file]
+  (versioning/checkout yaml-file yaml/parse-string))
 
 (defn- in-yaml [yaml-file f & args]
-  (-> f
-      (apply (slurp-yaml yaml-file) args)
-      (split-yaml yaml-file)))
+  (let [{:keys [version contents]} (checkout-yaml yaml-file)]
+    (versioning/stage! yaml-file version
+                       (yaml/generate-string (apply f contents args)))))
+
+(defn- in-json [json-file f & args]
+  (let [{:keys [version contents]} (checkout-json json-file)]
+    (versioning/stage! json-file version
+                       (json/write-str (apply f contents args) :key-fn name))))
 
 (defn- acl->access-control-list
   "Transform gatekeeper policy action to a access control list for the
@@ -104,14 +110,16 @@
 
 (defn- fetch
   [{:keys [credentials-json gateway-config-yaml pipeline]}]
-  (let [apps     (slurp-json credentials-json)
-        gw       (slurp-yaml gateway-config-yaml)
-        insts    (:serviceEndpoints gw)
-        pl       (-> gw :pipelines (get (keyword pipeline)))
-        policies (:policies pl)
-        api      (-> pl :apiEndpoints first keyword)]
+  (let [{apps :contents :as apps-checkout} (checkout-json credentials-json)
+        {gw :contents :as gw-checkout}     (checkout-yaml gateway-config-yaml)
+        insts                              (:serviceEndpoints gw)
+        pl                                 (-> gw :pipelines (get (keyword pipeline)))
+        policies                           (:policies pl)
+        api                                (-> pl :apiEndpoints first keyword)]
     {::state/applications         apps
      ::state/institutions         insts
+     ::uncommitted?               (or (versioning/uncommitted? apps-checkout)
+                                      (versioning/uncommitted? gw-checkout))
      ::state/access-control-lists (policies->access-control-lists policies
                                                                   (keys apps)
                                                                   (keys insts))
@@ -142,7 +150,7 @@
   [{:keys [::state/applications ::state/institutions ::state/access-control-lists]}
    {:keys [credentials-json gateway-config-yaml pipeline]}]
   (when applications
-    (spit-json applications credentials-json))
+    (in-json credentials-json (constantly applications)))
   (when institutions
     (in-yaml gateway-config-yaml
              assoc-in
@@ -154,13 +162,49 @@
              [:pipelines (keyword pipeline) :policies]
              access-control-lists->policies access-control-lists)))
 
+(defn- commit!
+  [{:keys [credentials-json gateway-config-yaml]}]
+  (versioning/commit! credentials-json)
+  (versioning/commit! gateway-config-yaml))
+
+(defn- last-commit
+  [{:keys [credentials-json gateway-config-yaml]}]
+  (Instant/ofEpochMilli (min (.lastModified (io/as-file credentials-json))
+                             (.lastModified (io/as-file gateway-config-yaml)))))
+
+(defn commit-component
+  [{:keys [::uncommitted? ::last-commit] :as r}]
+  (if last-commit
+    [:div.commit-status
+     (if uncommitted?
+       [:form {:action "/commit"
+               :method :post}
+        [:input {:type  :hidden
+                 :name  :redirect
+                 :value (:uri r)}]
+        (anti-forgery-field)
+        "Some changes since commit at " (html/time last-commit)
+        [:div.actions
+         [:button {:type :submit :class :secondary} "Commit changes"]]]
+       [:span "No changes since last commit at " (html/time last-commit)])]
+    [:div.commit-status
+     "Configuration error? no value for " ::last-commit]))
+
 (defn wrap
   "Middleware to allow reading and writing configuration."
   [app config]
-  (fn [req]
-    (let [cur (fetch config)
-          res (app (into req cur))
-          new (select-keys res [::state/applications ::state/institutions ::state/access-control-lists])]
-      (when (seq new)
-        (put new config))
-      res)))
+  (fn [{:keys [request-method uri params] :as req}]
+    (if (and (= :post request-method)
+             (= "/commit" uri))
+      (do (commit! config)
+          (assoc (response/redirect (:redirect params "/") :see-other)
+                 :flash "Committed"))
+      (let [cur (fetch config)
+            res (-> req
+                    (into cur)
+                    (assoc ::last-commit (last-commit config))
+                    app)
+            new (select-keys res [::state/applications ::state/institutions ::state/access-control-lists])]
+        (when (seq new)
+          (put new config))
+        res))))

@@ -73,10 +73,11 @@
 
 (deftest put
   (testing "setting applications"
-    (#'store/put {::state/applications {:fred {:passwordHash "..", :passwordSalt ".."}}
-                  ::state/institutions {:backend {:url "http://example.com/put-test"}}
+    (#'store/put {::state/applications         {:fred {:passwordHash "..", :passwordSalt ".."}}
+                  ::state/institutions         {:backend {:url "http://example.com/put-test"}}
                   ::state/access-control-lists {:fred {:backend #{"/"}}}}
                  *config*)
+    (#'store/commit! *config*)
     (let [{:keys [::state/applications
                   ::state/institutions
                   ::state/access-control-lists]} (#'store/fetch *config*)]
@@ -95,4 +96,6 @@
   (testing "round trip"
     (let [before (#'store/fetch *config*)]
       (#'store/put before *config*)
+      (#'store/commit! *config*)
+
       (is (= before (#'store/fetch *config*))))))

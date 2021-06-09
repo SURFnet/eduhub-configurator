@@ -201,3 +201,14 @@ label.path {
     right: 0;
     padding: 0;
 }
+
+.commit-status {
+    position: relative;
+}
+
+.commit-status .actions {
+    position: absolute;
+    top: 0;
+    right: 0;
+    padding: 0;
+}
