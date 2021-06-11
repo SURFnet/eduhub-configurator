@@ -182,12 +182,11 @@
                  :name  :redirect
                  :value (:uri r)}]
         (anti-forgery-field)
-        "Some changes since commit at " (html/time last-commit)
-        [:div.actions
-         [:button {:type :submit :class :secondary} "Commit changes"]]]
-       [:span "No changes since last commit at " (html/time last-commit)])]
+        [:button {:type :submit :class :secondary} "Commit changes"]
+        "Some changes since commit at " (html/time last-commit) "."]
+       [:span "No changes since last commit at " (html/time last-commit) "."])]
     [:div.commit-status
-     "Configuration error? no value for " ::last-commit]))
+     "Configuration error? No value for " ::last-commit "."]))
 
 (defn wrap
   "Middleware to allow reading and writing configuration."

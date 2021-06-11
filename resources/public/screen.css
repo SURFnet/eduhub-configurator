@@ -203,12 +203,10 @@ label.path {
 }
 
 .commit-status {
-    position: relative;
+    margin-top: 1rem;
 }
 
-.commit-status .actions {
-    position: absolute;
-    top: 0;
-    right: 0;
-    padding: 0;
+.commit-status button {
+    float: right;
+    font-weight: inherit;
 }
