@@ -5,7 +5,6 @@
             [ooapi-gateway-configurator.anti-forgery :refer [anti-forgery-field]]
             [ooapi-gateway-configurator.html :as html]
             [ooapi-gateway-configurator.state :as state]
-            [ooapi-gateway-configurator.store :as store]
             [ooapi-gateway-configurator.versioning :as versioning]
             [ring.util.response :as response])
   (:import java.time.Instant))
