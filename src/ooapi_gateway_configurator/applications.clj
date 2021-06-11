@@ -90,8 +90,7 @@
   [:div.detail
    (when orig-id
      [:div.top-actions
-      [:a {:href (str orig-id "/access-control-list")
-           :class "button secondary access-control-list"}
+      [:a {:href (str orig-id "/access-control-list")}
        "Access Control List"]])
 
    (if orig-id
@@ -118,31 +117,37 @@
                  :onclick (confirm-js :delete "application" orig-id)}
         "Delete"]]])])
 
+(defn- subtitle [id]
+  (if id
+    (str "'" id "' application")
+    "new application"))
+
 (defn- create-or-update
   "Handle create or update request."
   [{:keys                    [params ::state/applications]
     {:keys [id orig-id
             reset-password]} :params
     :as                      req}]
-  (let [errors (form-errors params)]
+  (let [subtitle (subtitle orig-id)
+        errors (form-errors params)]
     (cond
       reset-password
       (-> params
           (assoc :reset-password true)
           (detail-page)
-          (layout req))
+          (layout req subtitle))
 
       errors
       (-> params
           (detail-page)
-          (layout (assoc req :flash (str "Invalid input;\n" (s/join ",\n" errors))))
+          (layout (assoc req :flash (str "Invalid input;\n" (s/join ",\n" errors))) subtitle)
           (render req)
           (status http/not-acceptable))
 
       (and (not= id orig-id) (contains? applications (keyword id)))
       (-> params
           (detail-page)
-          (layout (assoc req :flash (str "ID already taken; " id))))
+          (layout (assoc req :flash (str "ID already taken; " id)) subtitle))
 
       :else
       (let [application (form-> params)]
@@ -157,12 +162,12 @@
   (GET "/applications/" {:keys [::state/applications] :as req}
        (-> (map (fn [[id m]] (->form m id)) applications)
            (index-page)
-           (layout req)))
+           (layout req "applications")))
 
   (GET "/applications/new" req
        (-> {}
            (detail-page)
-           (layout req)))
+           (layout req (subtitle nil))))
 
   (POST "/applications/new" req
         (create-or-update req))
@@ -174,7 +179,7 @@
          (-> application
              (->form id)
              (detail-page)
-             (layout req))
+             (layout req (subtitle id)))
          (not-found (str "Application '" id "' not found..")
                     req)))
 

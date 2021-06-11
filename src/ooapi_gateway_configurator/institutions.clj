@@ -223,6 +223,11 @@
   "Institution detail hiccup."
   [{:keys [orig-id] :as institution}]
   [:div.detail
+   (when orig-id
+     [:div.top-actions
+      [:a {:href (str orig-id "/access-control-list")}
+       "Access Control List"]])
+
    (if orig-id
      [:h2 "Institution: " (escape-html orig-id)]
      [:h2 "New institution"])
@@ -255,13 +260,19 @@
       (fn [coll]
         (concat (take n coll) (drop (inc n) coll))))))
 
+(defn- subtitle [id]
+  (if id
+    (str "'" id "' institution")
+    "new institution"))
+
 (defn- create-or-update
   "Handle create or update request."
   [{:keys                            [params ::state/institutions]
     {:keys [id orig-id
             add-header select-auth]} :params
     :as                              req}]
-  (let [errors           (form-errors params)
+  (let [subtitle         (subtitle orig-id)
+        errors           (form-errors params)
         delete-header-fn (delete-header-fn-from-params params)]
     (cond
       add-header
@@ -269,31 +280,31 @@
           (update :header-names conj "")
           (update :header-values conj "")
           (detail-page)
-          (layout req))
+          (layout req subtitle))
 
       delete-header-fn
       (-> params
           (update :header-names delete-header-fn)
           (update :header-values delete-header-fn)
           (detail-page)
-          (layout req))
+          (layout req subtitle))
 
       select-auth
       (-> params
           (detail-page)
-          (layout req))
+          (layout req subtitle))
 
       errors
       (-> params
           (detail-page)
-          (layout (assoc req :flash (str "Invalid input;\n" (s/join ",\n" errors))))
+          (layout (assoc req :flash (str "Invalid input;\n" (s/join ",\n" errors))) subtitle)
           (render req)
           (status http/not-acceptable))
 
       (and (not= id orig-id) (contains? institutions (keyword id)))
       (-> params
           (detail-page)
-          (layout (assoc req :flash (str "ID already taken; " id))))
+          (layout (assoc req :flash (str "ID already taken; " id)) subtitle))
 
       :else
       (let [institution (form-> params)]
@@ -310,12 +321,12 @@
   (GET "/institutions/" {:keys [::state/institutions] :as req}
        (-> (map (fn [[id m]] (->form m id)) institutions)
            (index-page)
-           (layout req)))
+           (layout req "institutions")))
 
   (GET "/institutions/new" req
        (-> {}
            (detail-page)
-           (layout req)))
+           (layout req (subtitle nil))))
 
   (POST "/institutions/new" req
         (create-or-update req))
@@ -327,7 +338,7 @@
          (-> institution
              (->form id)
              (detail-page)
-             (layout req))
+             (layout req (subtitle id)))
          (not-found (str "Institution '" id "' not found..")
                     req)))
 

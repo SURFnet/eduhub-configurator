@@ -37,63 +37,130 @@
       (is (re-find #"fred" (:body res))
           "includes application ID")
       (is (re-find #"BasicAuthBackend" (:body res))
+          "includes institution ID")))
+  (testing "GET /institutions/BasicAuthBackend/access-control-list"
+    (is (= http/not-found (:status (do-get "/institutions/DoesNotExist/access-control-list")))
+        "Not Found")
+    (let [res (do-get "/institutions/BasicAuthBackend/access-control-list")]
+      (is (= http/ok (:status res))
+          "OK")
+      (is (re-find #"BasicAuthBackend" (:body res))
+          "includes institution ID")
+      (is (re-find #"BasicAuthBackend" (:body res))
           "includes institution ID"))))
 
 (deftest do-update
-  (testing "POST /applications/fred/access-control-list"
-    (is (= http/not-found (:status (do-post "/applications/DoesNotExist/access-control-list")))
-        "Not Found")
-    (let [res (do-post "/applications/fred/access-control-list" {"access-control-list[BasicAuthBackend][]" "/"})]
-      (is (= http/see-other (:status res))
-          "see other")
-      (is (= "http://localhost/applications/fred" (-> res :headers (get "Location")))
-          "redirected back to access-control-lists list")
-      (is (:flash res)
-          "has a message about update")
-      (is (= [:ooapi-gateway-configurator.state/update-access-control-list-for-application
-              "fred"
-              {:BasicAuthBackend #{"/"}, :Oauth2Backend #{}, :ApiKeyBackend #{}}]
-             (-> res ::state/command))
-          "has update-access-control-list-for-application command for fred")))
+  (testing "applications"
+    (testing "POST /applications/fred/access-control-list"
+      (is (= http/not-found (:status (do-post "/applications/DoesNotExist/access-control-list")))
+          "Not Found")
+      (let [res (do-post "/applications/fred/access-control-list" {"access-control-list[BasicAuthBackend][]" "/"})]
+        (is (= http/see-other (:status res))
+            "see other")
+        (is (= "http://localhost/applications/fred" (-> res :headers (get "Location")))
+            "redirected back to access-control-lists list")
+        (is (:flash res)
+            "has a message about update")
+        (is (= [:ooapi-gateway-configurator.state/update-access-control-list-for-application
+                "fred"
+                {:BasicAuthBackend #{"/"}, :Oauth2Backend #{}, :ApiKeyBackend #{}}]
+               (-> res ::state/command))
+            "has update-access-control-list-for-application command for fred")))
 
-  (testing "select-all"
-    (let [res (do-post "/applications/fred/access-control-list"
-                       {"select-all-BasicAuthBackend"          ".."
-                        "access-control-list[ApiKeyBackend][]" "/"})]
-      (is (= http/ok (:status res))
-          "OK")
-      (let [basic-auth-backend-checkboxes (re-seq #"<input [^>]*?\bname=\"access-control-list\[BasicAuthBackend\]\[\]\".*?>"
-                                                  (:body res))]
-        (is (seq basic-auth-backend-checkboxes)
-            "got checkboxes for BasicAuthBackend")
-        (is (seq (filter #(re-find #"\bchecked\b" %) basic-auth-backend-checkboxes))
-            "got checked checkboxes")
-        (is (empty? (filter (complement #(re-find #"\bchecked\b" %)) basic-auth-backend-checkboxes))
-            "got no unchecked checkboxes"))
-      (is (= 1 (->> (:body res)
-                     (re-seq #"<input [^>]*?\bname=\"access-control-list\[ApiKeyBackend\]\[\]\".*?>")
-                     (filter #(re-find #"\bchecked\b" %))
-                     count))
-          "only 1 checked for ApiKeyBackend")))
+    (testing "select-all"
+      (let [res (do-post "/applications/fred/access-control-list"
+                         {"select-all-BasicAuthBackend"          ".."
+                          "access-control-list[ApiKeyBackend][]" "/"})]
+        (is (= http/ok (:status res))
+            "OK")
+        (let [basic-auth-backend-checkboxes (re-seq #"<input [^>]*?\bname=\"access-control-list\[BasicAuthBackend\]\[\]\".*?>"
+                                                    (:body res))]
+          (is (seq basic-auth-backend-checkboxes)
+              "got checkboxes for BasicAuthBackend")
+          (is (seq (filter #(re-find #"\bchecked\b" %) basic-auth-backend-checkboxes))
+              "got checked checkboxes")
+          (is (empty? (filter (complement #(re-find #"\bchecked\b" %)) basic-auth-backend-checkboxes))
+              "got no unchecked checkboxes"))
+        (is (= 1 (->> (:body res)
+                      (re-seq #"<input [^>]*?\bname=\"access-control-list\[ApiKeyBackend\]\[\]\".*?>")
+                      (filter #(re-find #"\bchecked\b" %))
+                      count))
+            "only 1 checked for ApiKeyBackend")))
 
-  (testing "select-none"
-    (let [res (do-post "/applications/fred/access-control-list"
-                       {"select-none-BasicAuthBackend"          ".."
-                        "access-control-list[BasicAuthBackend][]" "/"
-                        "access-control-list[ApiKeyBackend][]" "/"})]
-      (is (= http/ok (:status res))
-          "OK")
-      (let [basic-auth-backend-checkboxes (re-seq #"<input [^>]*?\bname=\"access-control-list\[BasicAuthBackend\]\[\]\".*?>"
-                                                  (:body res))]
-        (is (seq basic-auth-backend-checkboxes)
-            "got checkboxes for BasicAuthBackend")
-        (is (seq (filter (complement #(re-find #"\bchecked\b" %)) basic-auth-backend-checkboxes))
-            "none checked"))
-      (is (= 1 (->> (:body res)
-                     (re-seq #"<input [^>]*?\bname=\"access-control-list\[ApiKeyBackend\]\[\]\".*?>")
-                     (filter #(re-find #"\bchecked\b" %))
-                     count))
-          "only 1 checked for ApiKeyBackend"))))
+    (testing "select-none"
+      (let [res (do-post "/applications/fred/access-control-list"
+                         {"select-none-BasicAuthBackend"          ".."
+                          "access-control-list[BasicAuthBackend][]" "/"
+                          "access-control-list[ApiKeyBackend][]" "/"})]
+        (is (= http/ok (:status res))
+            "OK")
+        (let [basic-auth-backend-checkboxes (re-seq #"<input [^>]*?\bname=\"access-control-list\[BasicAuthBackend\]\[\]\".*?>"
+                                                    (:body res))]
+          (is (seq basic-auth-backend-checkboxes)
+              "got checkboxes for BasicAuthBackend")
+          (is (seq (filter (complement #(re-find #"\bchecked\b" %)) basic-auth-backend-checkboxes))
+              "none checked"))
+        (is (= 1 (->> (:body res)
+                      (re-seq #"<input [^>]*?\bname=\"access-control-list\[ApiKeyBackend\]\[\]\".*?>")
+                      (filter #(re-find #"\bchecked\b" %))
+                      count))
+            "only 1 checked for ApiKeyBackend"))))
+
+  (testing "institutions"
+    (testing "POST /institutions/BasicAuthBackend/access-control-list"
+      (is (= http/not-found (:status (do-post "/institutions/DoesNotExist/access-control-list")))
+          "Not Found")
+      (let [res (do-post "/institutions/BasicAuthBackend/access-control-list" {"access-control-list[fred][]" "/"})]
+        (is (= http/see-other (:status res))
+            "see other")
+        (is (= "http://localhost/institutions/BasicAuthBackend" (-> res :headers (get "Location")))
+            "redirected back to access-control-lists list")
+        (is (:flash res)
+            "has a message about update")
+        (is (= [:ooapi-gateway-configurator.state/update-access-control-list-for-institution
+                "BasicAuthBackend"
+                {:fred #{"/"}, :barney #{}, :bubbles #{}}]
+               (-> res ::state/command))
+            "has update-access-control-list-for-institution command for BasicAuthBackend")))
+
+    (testing "select-all"
+      (let [res (do-post "/institutions/BasicAuthBackend/access-control-list"
+                         {"select-all-fred"          ".."
+                          "access-control-list[barney][]" "/"})]
+        (is (= http/ok (:status res))
+            "OK")
+        (let [basic-auth-backend-checkboxes (re-seq #"<input [^>]*?\bname=\"access-control-list\[fred\]\[\]\".*?>"
+                                                    (:body res))]
+          (is (seq basic-auth-backend-checkboxes)
+              "got checkboxes for fred")
+          (is (seq (filter #(re-find #"\bchecked\b" %) basic-auth-backend-checkboxes))
+              "got checked checkboxes")
+          (is (empty? (filter (complement #(re-find #"\bchecked\b" %)) basic-auth-backend-checkboxes))
+              "got no unchecked checkboxes"))
+        (is (= 1 (->> (:body res)
+                      (re-seq #"<input [^>]*?\bname=\"access-control-list\[barney\]\[\]\".*?>")
+                      (filter #(re-find #"\bchecked\b" %))
+                      count))
+            "only 1 checked for barney")))
+
+    (testing "select-none"
+      (let [res (do-post "/institutions/BasicAuthBackend/access-control-list"
+                         {"select-none-fred"          ".."
+                          "access-control-list[fred][]" "/"
+                          "access-control-list[barney][]" "/"})]
+        (is (= http/ok (:status res))
+            "OK")
+        (let [basic-auth-backend-checkboxes (re-seq #"<input [^>]*?\bname=\"access-control-list\[fred\]\[\]\".*?>"
+                                                    (:body res))]
+          (is (seq basic-auth-backend-checkboxes)
+              "got checkboxes for fred")
+          (is (seq (filter (complement #(re-find #"\bchecked\b" %)) basic-auth-backend-checkboxes))
+              "none checked"))
+        (is (= 1 (->> (:body res)
+                      (re-seq #"<input [^>]*?\bname=\"access-control-list\[barney\]\[\]\".*?>")
+                      (filter #(re-find #"\bchecked\b" %))
+                      count))
+            "only 1 checked for barney")))))
 
 (def test-access-control-lists
   {:fred {:BasicAuthBackend #{"/"}
@@ -110,4 +177,4 @@
   (doseq [[id access-control-list] test-access-control-lists]
     (is (= access-control-list
            (#'access-control-lists/form-> (#'access-control-lists/->form access-control-list id)
-                                          test-institutions)))))
+                                          test-access-control-lists)))))

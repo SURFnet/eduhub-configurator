@@ -148,7 +148,6 @@ fieldset {
 
 .top-actions {
     float: right;
-    margin-top: .25rem;
 }
 .bottom-actions {
     position: absolute;
@@ -197,10 +196,10 @@ label.path {
     -moz-appearance: none;
     -webkit-appearance: none;
 }
-.institution {
+.member {
     position: relative;
 }
-.institution .actions {
+.member .actions {
     position: absolute;
     top: 0;
     right: 0;

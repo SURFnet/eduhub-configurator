@@ -81,10 +81,30 @@
         (update ::institutions dissoc id)
         (update ::access-control-lists delete-institution-in-acls id))))
 
+(defn invert-access-control-lists
+  "Invert orientation of access-control-list from application based to
+  institution based and visa versa."
+  [access-control-lists]
+  (reduce (fn [r [x m]]
+            (reduce (fn [r [y paths]]
+                      (assoc-in r [y x] paths))
+                    r
+                    m))
+          {}
+          access-control-lists))
+
 (defmethod process ::update-access-control-list-for-application
   [state [_ application-id access-control-list]]
   {:pre [(string? application-id)]}
   (assoc-in state [::access-control-lists (keyword application-id)] access-control-list))
+
+(defmethod process ::update-access-control-list-for-institution
+  [state [_ institution-id access-control-list]]
+  {:pre [(string? institution-id)]}
+  (-> state
+      (update ::access-control-lists invert-access-control-lists)
+      (assoc-in [::access-control-lists (keyword institution-id)] access-control-list)
+      (update ::access-control-lists invert-access-control-lists)))
 
 (defn wrap
   "Middleware to catch manipulations."

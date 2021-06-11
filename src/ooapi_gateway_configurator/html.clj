@@ -11,11 +11,11 @@
 (def title "OOAPI Gateway Configurator")
 
 (defn layout
-  [body {:keys [flash] :as req}]
+  [body {:keys [flash] :as req} & [subtitle]]
   (html5
    {:lang "en"}
    [:head
-    [:title title]
+    [:title (if subtitle (str subtitle " — " title) title)]
     [:link {:href "/screen.css" :rel "stylesheet"}]
     [:meta {:name "viewport", :content "width=device-width"}]]
    [:body

@@ -40,7 +40,7 @@
 
   The shape of the output (in EDN):
 
-    {:BasicAuthBackend ['/', '/courses', '/courses/:id']
+    {:BasicAuthBackend #{'/', '/courses', '/courses/:id'}
      :ApiKeyBackend    nil
      ..}
   "
@@ -95,7 +95,7 @@
   application-ids [:fred :barney] and
   institution-ids [:BasicAuthBackend :ApiKeyBackend].
 
-    {:fred   {:BasicAuthBackend ['/', '/courses', '/courses/:id']
+    {:fred   {:BasicAuthBackend #{'/', '/courses', '/courses/:id'}
               :ApiKeyBackend    nil}
      :barney {:BasicAuthBackend nil
               :ApiKeyBackend    nil}}

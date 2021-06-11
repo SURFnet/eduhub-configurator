@@ -169,4 +169,13 @@
                                            "fred"
                                            {:BasicAuthBackend #{"/"}}])
                    (app)
+                   (get-in [::state/access-control-lists :fred :BasicAuthBackend])))))
+
+      (testing "update-access-control-list-for-application"
+        (is (= #{"/"}
+               (-> request
+                   (assoc ::state/command [::state/update-access-control-list-for-institution
+                                           "BasicAuthBackend"
+                                           {:fred #{"/"}}])
+                   (app)
                    (get-in [::state/access-control-lists :fred :BasicAuthBackend]))))))))
