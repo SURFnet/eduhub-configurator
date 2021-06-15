@@ -86,7 +86,7 @@
 
 (defn- detail-page
   "Application detail hiccup."
-  [{:keys [orig-id] :as application}]
+  [{:keys [orig-id] :as application} & {:keys [dirty]}]
   [:div.detail
    (when orig-id
      [:div.top-actions
@@ -97,7 +97,8 @@
      [:h2 "Application: " (escape-html orig-id)]
      [:h2 "New application"])
 
-   [:form {:method :post}
+   [:form (cond-> {:method :post}
+            dirty (assoc :data-dirty "true"))
     [:input {:type "submit", :style "display: none"}] ;; ensure enter key submits
     (anti-forgery-field)
 
@@ -134,19 +135,19 @@
       reset-password
       (-> params
           (assoc :reset-password true)
-          (detail-page)
+          (detail-page :dirty true)
           (layout req subtitle))
 
       errors
       (-> params
-          (detail-page)
+          (detail-page :dirty true)
           (layout (assoc req :flash (str "Invalid input;\n" (s/join ",\n" errors))) subtitle)
           (render req)
           (status http/not-acceptable))
 
       (and (not= id orig-id) (contains? applications (keyword id)))
       (-> params
-          (detail-page)
+          (detail-page :dirty true)
           (layout (assoc req :flash (str "ID already taken; " id)) subtitle))
 
       :else

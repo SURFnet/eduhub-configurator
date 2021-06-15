@@ -221,7 +221,7 @@
 
 (defn- detail-page
   "Institution detail hiccup."
-  [{:keys [orig-id] :as institution}]
+  [{:keys [orig-id] :as institution} & {:keys [dirty]}]
   [:div.detail
    (when orig-id
      [:div.top-actions
@@ -232,7 +232,8 @@
      [:h2 "Institution: " (escape-html orig-id)]
      [:h2 "New institution"])
 
-   [:form {:method   :post}
+   [:form (cond-> {:method :post}
+            dirty (assoc :data-dirty "true"))
     [:input {:type "submit", :style "display: none"}] ;; ensure enter key submits
     (anti-forgery-field)
 
@@ -279,31 +280,31 @@
       (-> params
           (update :header-names conj "")
           (update :header-values conj "")
-          (detail-page)
+          (detail-page :dirty true)
           (layout req subtitle))
 
       delete-header-fn
       (-> params
           (update :header-names delete-header-fn)
           (update :header-values delete-header-fn)
-          (detail-page)
+          (detail-page :dirty true)
           (layout req subtitle))
 
       select-auth
       (-> params
-          (detail-page)
+          (detail-page :dirty true)
           (layout req subtitle))
 
       errors
       (-> params
-          (detail-page)
+          (detail-page :dirty true)
           (layout (assoc req :flash (str "Invalid input;\n" (s/join ",\n" errors))) subtitle)
           (render req)
           (status http/not-acceptable))
 
       (and (not= id orig-id) (contains? institutions (keyword id)))
       (-> params
-          (detail-page)
+          (detail-page :dirty true)
           (layout (assoc req :flash (str "ID already taken; " id)) subtitle))
 
       :else

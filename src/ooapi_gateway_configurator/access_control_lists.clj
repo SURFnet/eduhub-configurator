@@ -74,11 +74,12 @@
 
 (defn- detail-page
   "Access control list detail hiccup."
-  [{:keys [id] :as access-control-list} context api-paths & {:keys [scroll-to]}]
+  [{:keys [id] :as access-control-list} context api-paths & {:keys [scroll-to dirty]}]
   [:div.detail
-   [:h2 [:a {:href (str)}]"Access Control List: " id]
+   [:h2 "Access Control List: " id]
 
-   [:form {:method :post}
+   [:form (cond-> {:method :post}
+            dirty (assoc :data-dirty "true"))
     [:input {:type "submit", :style "display: none"}] ;; ensure enter key submits
     (anti-forgery-field)
 
@@ -112,14 +113,14 @@
       (-> access-control-list
           (->form id)
           (assoc-in [:access-control-list (keyword select-all)] api-paths)
-          (detail-page context api-paths :scroll-to (str "member-" select-all))
+          (detail-page context api-paths :scroll-to (str "member-" select-all) :dirty true)
           (layout req (subtitle context id)))
 
       select-none
       (-> access-control-list
           (->form id)
           (assoc-in [:access-control-list (keyword select-none)] #{})
-          (detail-page context api-paths :scroll-to (str "member-" select-none))
+          (detail-page context api-paths :scroll-to (str "member-" select-none) :dirty true)
           (layout req (subtitle context id)))
 
       :else

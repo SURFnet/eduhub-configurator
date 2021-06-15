@@ -1,11 +1,11 @@
 (ns ooapi-gateway-configurator.html
+  (:refer-clojure :exclude [time])
   (:require [compojure.response :refer [render]]
             [hiccup.page :refer [html5]]
             [hiccup.util :refer [escape-html]]
             [ooapi-gateway-configurator.auth :as auth]
             [ooapi-gateway-configurator.http :as http]
             [ring.util.response :refer [status]])
-  (:refer-clojure :exclude [time])
   (:import java.time.format.DateTimeFormatter))
 
 (def title "OOAPI Gateway Configurator")
@@ -17,7 +17,8 @@
    [:head
     [:title (if subtitle (str subtitle " — " title) title)]
     [:link {:href "/screen.css" :rel "stylesheet"}]
-    [:meta {:name "viewport", :content "width=device-width"}]]
+    [:meta {:name "viewport", :content "width=device-width"}]
+    [:script {:src "/unload.js"}]]
    [:body
     [:header
      [:h1 [:a {:href "/"} title]]
