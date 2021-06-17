@@ -20,7 +20,6 @@
    :auth-user-info-uri    nil
 
    :gateway-config-yaml nil
-   :credentials-json    nil
    :pipeline            nil})
 
 (defn get-env
@@ -64,7 +63,6 @@
            :port  (get-int env :http-port)
            :join? false}
    :store {:gateway-config-yaml (get-file env :gateway-config-yaml :existing? true)
-           :credentials-json    (get-file env :credentials-json :existing? true)
            :pipeline            (get-str env :pipeline :required? true)}
    :auth  {:authorize-uri    (get-str env :auth-authorize-uri :required? true)
            :access-token-uri (get-str env :auth-access-token-uri :required? true)

@@ -6,7 +6,6 @@
             [ooapi-gateway-configurator.store-test :as store-test]
             [ring.mock.request :refer [request]]))
 
-(def ^:dynamic *json-fname*)
 (def ^:dynamic *app*)
 
 (use-fixtures :each

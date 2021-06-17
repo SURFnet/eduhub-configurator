@@ -8,24 +8,19 @@
 
 (defn setup
   []
-  (let [credentials-file    (File/createTempFile "ooapi-gw-configurator" "credentials.json")
-        gateway-config-file (File/createTempFile "ooapi-gw-configurator" "gateway.config.yml")]
-    (spit credentials-file (slurp (io/resource "test/credentials.json")))
+  (let [gateway-config-file (File/createTempFile "ooapi-gw-configurator" "gateway.config.yml")]
     (spit gateway-config-file (slurp (io/resource "test/gateway.config.yml")))
-    {:credentials-file    credentials-file
-     :gateway-config-file gateway-config-file
+    {:gateway-config-file gateway-config-file
      :pipeline            "test"}))
 
 (defn teardown
-  [{:keys [credentials-file gateway-config-file]}]
-  (.delete credentials-file)
+  [{:keys [gateway-config-file]}]
   (.delete gateway-config-file))
 
 (defn wrap
-  [handler {:keys [credentials-file gateway-config-file]}]
+  [handler {:keys [gateway-config-file]}]
   (-> handler
-      (store/wrap {:credentials-json    (.getPath credentials-file)
-                   :gateway-config-yaml (.getPath gateway-config-file)
+      (store/wrap {:gateway-config-yaml (.getPath gateway-config-file)
                    :pipeline            "test"})
       (wrap-defaults (dissoc site-defaults :security))))
 
@@ -33,10 +28,9 @@
 
 (use-fixtures :each
   (fn [f]
-    (let [{:keys [credentials-file gateway-config-file]
+    (let [{:keys [gateway-config-file]
            :as   state} (setup)]
-      (binding [*config* {:credentials-json    (.getPath credentials-file)
-                          :gateway-config-yaml (.getPath gateway-config-file)
+      (binding [*config* {:gateway-config-yaml (.getPath gateway-config-file)
                           :pipeline            "test"}]
         (f))
       (teardown state))))
@@ -72,30 +66,14 @@
                (:bubbles access-control-lists)))))))
 
 (deftest put
-  (testing "setting applications"
-    (#'store/put {::state/applications         {:fred {:passwordHash "..", :passwordSalt ".."}}
-                  ::state/institutions         {:backend {:url "http://example.com/put-test"}}
-                  ::state/access-control-lists {:fred {:backend #{"/"}}}}
-                 *config*)
-    (#'store/commit! *config*)
-    (let [{:keys [::state/applications
-                  ::state/institutions
-                  ::state/access-control-lists]} (#'store/fetch *config*)]
-      (is (= 1 (count applications)))
-      (is (= {:fred {:passwordHash "..", :passwordSalt ".."}}
-             applications))
-
-      (is (= 1 (count institutions)))
-      (is (= {:backend {:url "http://example.com/put-test"}}
-             institutions))
-
-      (is (= 1 (count access-control-lists)))
-      (is (= {:fred {:backend #{"/"}}}
-             access-control-lists))))
-
-  (testing "round trip"
-    (let [before (#'store/fetch *config*)]
-      (#'store/put before *config*)
+  (let [state {::state/applications         {:fred {:passwordHash "..", :passwordSalt ".."}}
+               ::state/institutions         {:backend {:url "http://example.com/put-test"}}
+               ::state/access-control-lists {:fred {:backend #{"/"}}}}]
+    (testing "round trip"
+      (#'store/put state
+                   *config*)
       (#'store/commit! *config*)
-
-      (is (= before (#'store/fetch *config*))))))
+      (is (= state (-> (#'store/fetch *config*)
+                       (select-keys [::state/applications
+                                     ::state/institutions
+                                     ::state/access-control-lists])))))))
