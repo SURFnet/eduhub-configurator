@@ -3,7 +3,7 @@
             [compojure.core :refer [defroutes DELETE GET POST]]
             [compojure.response :refer [render]]
             [hiccup.util :refer [escape-html]]
-            [ooapi-gateway-configurator.anti-forgery :refer [anti-forgery-field]]
+            [ooapi-gateway-configurator.form :as form]
             [ooapi-gateway-configurator.html :refer [confirm-js layout not-found]]
             [ooapi-gateway-configurator.http :as http]
             [ooapi-gateway-configurator.state :as state]
@@ -172,7 +172,7 @@
 
    (cond
      (= "basic" auth)
-     [:fieldset [:legend "Basic Authentication"]
+     [:div
       [:div.field
        [:label {:for "basis-user"} "Basic Authentication User"]
        [:input {:type "text",            :pattern "[^:]*"
@@ -184,7 +184,7 @@
                 :name "basic-auth-pass", :value        basic-auth-pass}]]]
 
      (= "oauth" auth)
-     [:fieldset [:legend "OAuth2 Client Credentials"]
+     [:div
       [:div.field
        [:label {:for "oauth-url"} "Token Endpoint URL"]
        [:input {:type "url",       :pattern "https?://.*"
@@ -232,25 +232,23 @@
      [:h2 "Institution: " (escape-html orig-id)]
      [:h2 "New institution"])
 
-   [:form (cond-> {:method :post}
-            dirty (assoc :data-dirty "true"))
+   (form/form
+    (cond-> {:method "post"}
+      dirty (assoc :data-dirty "true"))
     [:input {:type "submit", :style "display: none"}] ;; ensure enter key submits
-    (anti-forgery-field)
-
-    (into [:fieldset] (form institution))
+    (into [:div] (form institution))
 
     [:div.actions
      [:button {:type "submit", :class "primary"} (if orig-id "Update" "Create")]
      " "
-     [:a {:href ".", :class "button"} "Cancel"]]]
+     [:a {:href ".", :class "button"} "Cancel"]])
 
    [:div.bottom-actions
-    [:form {:method :post, :class :delete}
-     [:input {:type :hidden, :name :_method, :value :delete}]
-     (anti-forgery-field)
-     [:button {:type :submit
+    (form/form
+     {:method "delete" :class "delete"}
+     [:button {:type    "submit"
                :onclick (confirm-js :delete "institution" orig-id)}
-      "Delete"]]]])
+      "Delete"])]])
 
 (defn- delete-header-fn-from-params
   "Find parameter named \"delete-header-X\" were X is a number and
@@ -344,8 +342,8 @@
                     req)))
 
   (POST "/institutions/:orig-id" {:keys             [::state/institutions]
-                                         {:keys [orig-id]} :params
-                                         :as               req}
+                                  {:keys [orig-id]} :params
+                                  :as               req}
         (if (get institutions (keyword orig-id))
           (create-or-update req)
           (not-found (str "Institution '" orig-id "' not found..")

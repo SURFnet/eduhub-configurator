@@ -3,7 +3,7 @@
             [compojure.core :refer [defroutes GET POST routes]]
             [hiccup.element :refer [javascript-tag]]
             [hiccup.util :refer [escape-html]]
-            [ooapi-gateway-configurator.anti-forgery :refer [anti-forgery-field]]
+            [ooapi-gateway-configurator.form :as form]
             [ooapi-gateway-configurator.html :refer [layout not-found]]
             [ooapi-gateway-configurator.state :as state]
             [ring.util.codec :refer [url-encode]]
@@ -26,51 +26,50 @@
           (-> access-control-lists first val keys)))
 
 (defn- form [context {:keys [access-control-list]} api-paths]
-  [[:div.field]
-   (for [[member paths] (sort-by key access-control-list)]
-     (let [id (name member)]
-       [:div.member {:id (str "member-" id)}
-        [:h3 [:a {:href (str ({:application "/institutions/"
-                               :institution "/applications/"} context) id)}
-              (escape-html id)]]
-        [:div.actions
-         [:input {:type  "submit", :class "secondary"
-                  :name  (str "select-all-" id)
-                  :value "Select all"}]
-         " "
-         [:input {:type  "submit", :class "secondary"
-                  :name  (str "select-none-" id)
-                  :value "Select none"}]]
+  (for [[member paths] (sort-by key access-control-list)]
+    (let [id (name member)]
+      [:div.member {:id (str "member-" id)}
+       [:h3 [:a {:href (str ({:application "/institutions/"
+                              :institution "/applications/"} context) id)}
+             (escape-html id)]]
+       [:div.actions
+        [:input {:type  "submit", :class "secondary"
+                 :name  (str "select-all-" id)
+                 :value "Select all"}]
+        " "
+        [:input {:type  "submit", :class "secondary"
+                 :name  (str "select-none-" id)
+                 :value "Select none"}]]
 
-        (for [path (sort paths)]
-          [:label.path
-           [:input {:type    "checkbox"
-                    :name    (str "access-control-list[" id "][]")
-                    :value   path
-                    :checked (contains? paths path)}]
-           (escape-html path)])
+       (for [path (sort paths)]
+         [:label.path
+          [:input {:type    "checkbox"
+                   :name    (str "access-control-list[" id "][]")
+                   :value   path
+                   :checked (contains? paths path)}]
+          (escape-html path)])
 
-        (when-let [unselected-paths (-> api-paths (set/difference paths) (sort) (seq))]
-          [:div.unselected
-           [:button {:id      (str "ut-" id)
-                     :type    "button", :class "secondary"
-                     :style   "display:none"
-                     ;; note: id will not contain characters which need quoting
-                     :onclick (str "document.getElementById('ut-" id "').style.display = 'none';"
-                                   "document.getElementById('up-" id "').style.display = 'inherit';")}
-            "More.."]
-           [:div.paths {:id (str "up-" id)}
-            (for [path unselected-paths]
-              [:label.path
-               [:input {:type    "checkbox"
-                        :name    (str "access-control-list[" id "][]")
-                        :value   path
-                        :checked (contains? paths path)}]
-               (escape-html path)])]
-           (javascript-tag
-            ;; note: id will not contain characters which need quoting
-            (str "document.getElementById('ut-" id "').style.display = 'inherit';"
-                 "document.getElementById('up-" id "').style.display = 'none';"))])]))])
+       (when-let [unselected-paths (-> api-paths (set/difference paths) (sort) (seq))]
+         [:div.unselected
+          [:button {:id      (str "ut-" id)
+                    :type    "button", :class "secondary"
+                    :style   "display:none"
+                    ;; note: id will not contain characters which need quoting
+                    :onclick (str "document.getElementById('ut-" id "').style.display = 'none';"
+                                  "document.getElementById('up-" id "').style.display = 'inherit';")}
+           "More.."]
+          [:div.paths {:id (str "up-" id)}
+           (for [path unselected-paths]
+             [:label.path
+              [:input {:type    "checkbox"
+                       :name    (str "access-control-list[" id "][]")
+                       :value   path
+                       :checked (contains? paths path)}]
+              (escape-html path)])]
+          (javascript-tag
+           ;; note: id will not contain characters which need quoting
+           (str "document.getElementById('ut-" id "').style.display = 'inherit';"
+                "document.getElementById('up-" id "').style.display = 'none';"))])])))
 
 (defn- detail-page
   "Access control list detail hiccup."
@@ -78,17 +77,17 @@
   [:div.detail
    [:h2 "Access Control List: " id]
 
-   [:form (cond-> {:method :post}
-            dirty (assoc :data-dirty "true"))
+   (form/form
+    (cond-> {:method "post"}
+      dirty (assoc :data-dirty "true"))
     [:input {:type "submit", :style "display: none"}] ;; ensure enter key submits
-    (anti-forgery-field)
 
-    (into [:fieldset] (form context access-control-list api-paths))
+    (into [:div] (form context access-control-list api-paths))
 
     [:div.actions
      [:button {:type "submit", :class "primary"} "Update"]
      " "
-     [:a {:href (str "../" (url-encode id)), :class "button"} "Cancel"]]]
+     [:a {:href (str "../" (url-encode id)), :class "button"} "Cancel"]])
 
    (when scroll-to
      (javascript-tag (str "document.getElementById(" (pr-str scroll-to) ").scrollIntoView()")))])

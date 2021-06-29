@@ -3,8 +3,8 @@
             [compojure.core :refer [defroutes DELETE GET POST]]
             [compojure.response :refer [render]]
             [hiccup.util :refer [escape-html]]
-            [ooapi-gateway-configurator.anti-forgery :refer [anti-forgery-field]]
             [ooapi-gateway-configurator.digest :as digest]
+            [ooapi-gateway-configurator.form :as form]
             [ooapi-gateway-configurator.html :refer [confirm-js layout not-found]]
             [ooapi-gateway-configurator.http :as http]
             [ooapi-gateway-configurator.state :as state]
@@ -97,26 +97,25 @@
      [:h2 "Application: " (escape-html orig-id)]
      [:h2 "New application"])
 
-   [:form (cond-> {:method :post}
-            dirty (assoc :data-dirty "true"))
+   (form/form
+    (cond-> {:method "post"}
+      dirty (assoc :data-dirty "true"))
     [:input {:type "submit", :style "display: none"}] ;; ensure enter key submits
-    (anti-forgery-field)
-
-    (into [:fieldset] (form application))
+    (into [:div] (form application))
 
     [:div.actions
      [:button {:type "submit", :class "primary"} (if orig-id "Update" "Create")]
      " "
-     [:a {:href ".", :class "button"} "Cancel"]]]
+     [:a {:href ".", :class "button"} "Cancel"]])
 
    (when orig-id
      [:div.bottom-actions
-      [:form {:method :post, :class :delete}
-       [:input {:type :hidden, :name :_method, :value :delete}]
-       (anti-forgery-field)
-       [:button {:type :submit
+      (form/form
+       {:method "delete"
+        :class  "delete"}
+       [:button {:type    "submit"
                  :onclick (confirm-js :delete "application" orig-id)}
-        "Delete"]]])])
+        "Delete"])])])
 
 (defn- subtitle [id]
   (if id
@@ -130,7 +129,7 @@
             reset-password]} :params
     :as                      req}]
   (let [subtitle (subtitle orig-id)
-        errors (form-errors params)]
+        errors   (form-errors params)]
     (cond
       reset-password
       (-> params

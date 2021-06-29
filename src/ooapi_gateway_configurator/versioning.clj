@@ -37,6 +37,7 @@
   Stages will check that there has been no concurrent change to the
   stage. If a conflict is detected, the stage will be discarded. See
   also the documentation for `stage!`"
+  (:refer-clojure :exclude [reset!])
   (:require [clojure.edn :as edn]
             [clojure.java.io :as io]
             [clojure.string :as string]
@@ -122,6 +123,7 @@
   If the stage succeeds, returns `true`. If a conflict is detected,
   discards the contents and returns `nil`."
   ([source-path previous-version contents]
+   {:pre [(string? source-path) (string? previous-version) (string? contents)]}
    (locking monitor
      (let [{:keys [source-version version]} (checkout source-path)]
        (when (= version previous-version)
@@ -178,9 +180,38 @@
     (when dir
       (map #(str dir-path "/" %) (.list dir)))))
 
+(defn reset!
+  "Stage an earlier backup of `source-path`."
+  [source-path previous-version timestamp]
+  {:pre [(string? source-path)
+         (string? previous-version)
+         (or (int? timestamp) (inst? timestamp))]}
+  (let [timestamp   (if (int? timestamp)
+                      timestamp
+                      (inst-ms timestamp))
+        backup-path (str source-path ".backup." timestamp)]
+    (stage! source-path previous-version (slurp backup-path))))
+
 (defn backups
   [source-path]
   (let [backup? (fn [b]
                   (and (.isFile (io/as-file b))
                        (string/starts-with? b (str source-path ".backup."))))]
-    (filter backup? (list-siblings source-path))))
+    (->> source-path
+         list-siblings
+         (filter backup?)
+         (map (fn [path]
+                {:path      path
+                 :timestamp (-> path
+                                (string/replace #".*\.backup\." "")
+                                Long/parseLong
+                                java.time.Instant/ofEpochMilli)}))
+         (sort-by :timestamp)
+         reverse)))
+
+(defn versions
+  [source-path]
+  (cons {:path      source-path
+         :deployed? true
+         :timestamp (java.time.Instant/ofEpochMilli (.lastModified (io/file source-path)))}
+        (backups source-path)))

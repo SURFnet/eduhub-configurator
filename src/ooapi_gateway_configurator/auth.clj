@@ -25,7 +25,7 @@
   (:require [clojure.tools.logging :as log]
             [compojure.core :refer [defroutes POST]]
             [compojure.response :refer [render]]
-            [ooapi-gateway-configurator.anti-forgery :refer [anti-forgery-field]]
+            [ooapi-gateway-configurator.form :as form]
             [ooapi-gateway-configurator.http :as status]
             [ooapi-gateway-configurator.user-info :as user-info]
             [ring.middleware.oauth2 :as oauth2]
@@ -85,7 +85,7 @@
         (handler request)
         (->  "You're not authorized to access this resource"
              (render request)
-            (response/status status/forbidden)))
+             (response/status status/forbidden)))
       (-> "You're not logged in"
           (render request)
           (response/status status/unauthorized)))))
@@ -95,11 +95,11 @@
   [request]
   [:div.login
    (if (user-info request)
-     [:form {:action "/logout"
-             :method "POST"}
-      (anti-forgery-field)
-      [:button.button {:type :submit}
-       "Log out"]]
+     (form/form
+      {:action "/logout"
+       :method "post"}
+      [:button.button {:type "submit"}
+       "Log out"])
      [:a.button {:href "/oauth2/conext"} "Log in"])])
 
 (defroutes logout-handler

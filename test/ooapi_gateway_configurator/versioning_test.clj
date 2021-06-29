@@ -15,11 +15,13 @@
   [f]
   (spit test-path initial-contents)
   (versioning/unstage! test-path)
-  (f)
-  (versioning/unstage! test-path)
-  (doseq [backup (versioning/backups test-path)]
-    (.delete (io/as-file backup)))
-  (.delete (io/as-file test-path)))
+  (try
+    (f)
+    (finally
+      (versioning/unstage! test-path)
+      (doseq [backup (map :path (versioning/backups test-path))]
+        (.delete (io/as-file backup)))
+      (.delete (io/as-file test-path)))))
 
 (use-fixtures :each fixture)
 
@@ -86,3 +88,27 @@
           :version        concurrent-digest
           :contents       concurrent-contents}
          (versioning/checkout test-path))))
+
+(deftest commit-and-revert
+  (is (= {:source-version initial-digest
+          :version        initial-digest
+          :contents       initial-contents}
+         (versioning/checkout test-path))
+      "Return contents and digest from source")
+  (is (versioning/stage! test-path initial-digest updated-contents))
+  (is (versioning/commit! test-path))
+  (is (= {:source-version updated-digest
+          :version        updated-digest
+          :contents       updated-contents}
+         (versioning/checkout test-path))
+      "Return updated contents")
+  (is (= 1 (count (versioning/backups test-path)))
+      "One backup created")
+  (is (versioning/reset! test-path updated-digest
+                         (-> (versioning/backups test-path) last :timestamp))
+      "Reset succeeded")
+  (is (= {:source-version updated-digest
+          :version        initial-digest
+          :contents       initial-contents}
+         (versioning/checkout test-path))
+      "Return contents and digest from reset"))

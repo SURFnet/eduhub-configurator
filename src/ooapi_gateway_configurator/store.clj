@@ -1,7 +1,7 @@
 (ns ooapi-gateway-configurator.store
   (:require [clj-yaml.core :as yaml]
             [clojure.java.io :as io]
-            [ooapi-gateway-configurator.anti-forgery :refer [anti-forgery-field]]
+            [ooapi-gateway-configurator.form :as form]
             [ooapi-gateway-configurator.html :as html]
             [ooapi-gateway-configurator.state :as state]
             [ooapi-gateway-configurator.store.klist :as klist]
@@ -60,6 +60,7 @@
 (defn- fetch
   [{:keys [gateway-config-yaml pipeline]}]
   (let [{{:keys [serviceEndpoints pipelines] :as gw} :contents
+         current-version                             :version
          :as                                         checkout} (checkout-yaml gateway-config-yaml)
         {:keys [policies apiEndpoints]}                        (get pipelines (keyword pipeline))
         api                                                    (-> apiEndpoints first keyword)
@@ -67,6 +68,8 @@
     {::state/applications         apps
      ::state/institutions         serviceEndpoints
      ::uncommitted?               (versioning/uncommitted? checkout)
+     ::versions                   (versioning/versions gateway-config-yaml)
+     ::current-version            current-version
      ::state/access-control-lists (-> policies
                                       (klist/get-in [:gatekeeper :action :acls])
                                       (gatekeeper-acls->acls (keys apps) (keys serviceEndpoints)))
@@ -110,31 +113,82 @@
   (Instant/ofEpochMilli (.lastModified (io/as-file gateway-config-yaml))))
 
 (defn commit-component
-  [{:keys [::uncommitted? ::last-commit] :as r}]
+  [{::keys [uncommitted? versions last-commit current-version]}]
   (if last-commit
     [:div.commit-status
-     (if uncommitted?
-       [:form {:action "/commit"
-               :method :post}
-        [:input {:type  :hidden
-                 :name  :redirect
-                 :value (:uri r)}]
-        (anti-forgery-field)
-        [:button {:type :submit :class :secondary} "Commit changes"]
-        "Some changes since commit at " (html/time last-commit) "."]
-       [:span "No changes since last commit at " (html/time last-commit) "."])]
+     (when uncommitted?
+       [:fieldset [:legend "Pending changes"]
+        (form/form
+         {:action "/versioning"
+          :method "post"}
+         "Some changes since deploy at " (html/time last-commit) "."
+         [:div.actions
+          [:button {:type    "submit"
+                    :name    "commit"
+                    :value   "true"
+                    :onclick "return confirm('Deploy edits?')"}
+           "Deploy changes"]
+          [:button {:type    "submit"
+                    :name    "reset"
+                    :value   "true"
+                    :onclick "return confirm('Discard changes?')"}
+           "Discard changes"]])])
+     (form/form
+      {:action     "/versioning"
+       :method     "post"
+       :data-dirty "never"
+       :onsubmit   "return confirm('Reset edits?')"}
+      [:input {:type  "hidden"
+               :name  "current-version"
+               :value current-version}]
+      [:fieldset.older-versions
+       [:legend "Deployed versions"]
+       (map (fn [{:keys [timestamp deployed?]}]
+              [:label.version
+               [:input {:type    "radio"
+                        :name    "timestamp"
+                        :checked (when deployed?
+                                   "checked")
+                        :value   (if deployed?
+                                   "current"
+                                   (inst-ms timestamp))}]
+               (html/time timestamp)
+               (when deployed?
+                 [:em.deployed "Currently deployed"])])
+            versions)
+       [:button {:type  "submit"
+                 :name  "reset"
+                 :value "true"}
+        "Reset pending changes"]])]
     [:div.commit-status
      "Configuration error? No value for " ::last-commit "."]))
 
 (defn wrap
   "Middleware to allow reading and writing configuration."
-  [app config]
+  [app {:keys [gateway-config-yaml] :as config}]
   (fn [{:keys [request-method uri params] :as req}]
     (if (and (= :post request-method)
-             (= "/commit" uri))
-      (do (commit! config)
-          (assoc (response/redirect (:redirect params "/") :see-other)
-                 :flash "Committed"))
+             (= "/versioning" uri))
+      (merge
+       (response/redirect "/" :see-other)
+       (cond
+         (:commit params)
+         (do (versioning/commit! gateway-config-yaml)
+             {:flash "Deployed changes"})
+
+         (and (:reset params) (or (= "current" (:timestamp params))
+                                  (nil? (:timestamp params))))
+         (do (versioning/unstage! gateway-config-yaml)
+             {:flash "Discarded changes - reset to currently deployed version."})
+
+         (and (:reset params) (:timestamp params))
+         (let [timestamp (-> params
+                             :timestamp
+                             Long/parseLong
+                             java.time.Instant/ofEpochMilli)]
+           (if (versioning/reset! gateway-config-yaml (:current-version params) timestamp)
+             {:flash (str "Discarded changes - reset to version of " (html/human-time timestamp))}
+             {:flash "Reset failed!"}))))
       (let [cur (fetch config)
             res (-> req
                     (into cur)
