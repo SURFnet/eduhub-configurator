@@ -39,6 +39,8 @@
     (let [res (do-get "/applications/fred")]
       (is (= http/ok (:status res))
           "OK")
+      (is (re-find #"Edit Application" (:body res))
+          "includes header")
       (is (re-find #"fred" (:body res))
           "includes application ID"))))
 
@@ -97,7 +99,7 @@
     (let [res (do-get "/applications/new")]
       (is (= http/ok (:status res))
           "OK")
-      (is (re-find #"New application" (:body res))
+      (is (re-find #"Create Application" (:body res))
           "includes header")))
 
   (testing "POST /applications/new"

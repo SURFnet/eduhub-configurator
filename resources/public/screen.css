@@ -134,14 +134,15 @@ a.button.primary, button.primary {
 .detail {
     position: relative;
 }
+.detail nav {
+    background: #f8f8ff;
+    padding: .5em;
+}
 
 .actions {
     padding: 2em 0 0 0;
 }
 
-.top-actions {
-    float: right;
-}
 .bottom-actions {
     position: absolute;
     bottom: 0;

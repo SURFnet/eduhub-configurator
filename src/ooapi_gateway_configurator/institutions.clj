@@ -224,13 +224,15 @@
   [{:keys [orig-id] :as institution} & {:keys [dirty]}]
   [:div.detail
    (when orig-id
-     [:div.top-actions
-      [:a {:href (str orig-id "/access-control-list")}
+     [:nav
+      [:a.institution (escape-html orig-id)]
+      " / "
+      [:a.access-control-list {:href (str orig-id "/access-control-list")}
        "Access Control List"]])
 
    (if orig-id
-     [:h2 "Institution: " (escape-html orig-id)]
-     [:h2 "New institution"])
+     [:h2 "Edit Institution"]
+     [:h2 "Create Institution"])
 
    (form/form
     (cond-> {:method "post"}

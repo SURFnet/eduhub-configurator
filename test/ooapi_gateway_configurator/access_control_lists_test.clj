@@ -34,6 +34,8 @@
     (let [res (do-get "/applications/fred/access-control-list")]
       (is (= http/ok (:status res))
           "OK")
+      (is (re-find #"Edit Access Control List" (:body res))
+          "includes header")
       (is (re-find #"fred" (:body res))
           "includes application ID")
       (is (re-find #"BasicAuthBackend" (:body res))

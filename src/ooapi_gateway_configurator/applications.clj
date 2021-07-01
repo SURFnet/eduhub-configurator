@@ -89,13 +89,15 @@
   [{:keys [orig-id] :as application} & {:keys [dirty]}]
   [:div.detail
    (when orig-id
-     [:div.top-actions
-      [:a {:href (str orig-id "/access-control-list")}
+     [:nav
+      [:a.application (escape-html orig-id)]
+      " / "
+      [:a.access-control-list {:href (str orig-id "/access-control-list")}
        "Access Control List"]])
 
    (if orig-id
-     [:h2 "Application: " (escape-html orig-id)]
-     [:h2 "New application"])
+     [:h2 "Edit Application"]
+     [:h2 "Create Application"])
 
    (form/form
     (cond-> {:method "post"}

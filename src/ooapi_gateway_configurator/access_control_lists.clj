@@ -75,8 +75,13 @@
   "Access control list detail hiccup."
   [{:keys [id] :as access-control-list} context api-paths & {:keys [scroll-to dirty]}]
   [:div.detail
-   [:h2 "Access Control List: " id]
+   [:nav
+    [:a {:href (str "../" (url-encode id)), :class context}
+     (escape-html id)]
+    " / "
+    [:a "Access Control List"]]
 
+   [:h2 "Edit Access Control List"]
    (form/form
     (cond-> {:method "post"}
       dirty (assoc :data-dirty "true"))

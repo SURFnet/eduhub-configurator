@@ -40,6 +40,8 @@
     (let [res (do-get "/institutions/BasicAuthBackend")]
       (is (= http/ok (:status res))
           "OK")
+      (is (re-find #"Edit Institution" (:body res))
+          "includes header")
       (is (re-find #"BasicAuthBackend" (:body res))
           "includes institution ID")
       (is (re-find #"https://example.com/test-backend" (:body res))
@@ -146,7 +148,7 @@
     (let [res (do-get "/institutions/new")]
       (is (= http/ok (:status res))
           "OK")
-      (is (re-find #"New institution" (:body res))
+      (is (re-find #"Create Institution" (:body res))
           "includes header")))
 
   (testing "POST /institutions/new"
