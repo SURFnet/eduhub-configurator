@@ -20,7 +20,8 @@
 
   :target-path "target/%s"
 
-  :profiles {:uberjar {:aot :all}
+  :profiles {:uberjar {:aot          :all
+                       :uberjar-name "ooapi-gateway-configurator.jar"}
              :dev     {:source-paths ["dev"]
                        :dependencies [[org.clojure/tools.namespace "1.1.0"]
                                       [clj-kondo "2021.04.23"]
