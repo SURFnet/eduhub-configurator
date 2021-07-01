@@ -22,12 +22,19 @@
    :gateway-config-yaml nil
    :pipeline            nil})
 
+(defn key-to-env
+  [k]
+  (-> k
+      name
+      string/upper-case
+      (string/replace #"-" "_")))
+
 (defn get-env
   [env k & {:keys [required?] :as opts}]
   (if-some [v (get env k (get default-env k))]
     v
     (when required?
-      (throw (ex-info (str "Required configuration option " k " was not provided")
+      (throw (ex-info (str "Required configuration option " (key-to-env k) " was not provided")
                       {:key  k
                        :opts opts})))))
 
@@ -46,15 +53,15 @@
     (try
       (Integer/parseInt s)
       (catch NumberFormatException _
-        (throw (ex-info (str "Configuration option " k " should be a valid integer")
-                        {:option k :value s}))))))
+        (throw (ex-info (str "Configuration option " (key-to-env k) " should be a valid integer")
+                        {:key k :value s}))))))
 
 (defn get-file
   [env k & {:keys [existing?]}]
   (let [s (get-env env k)]
     (when (and existing? (or (not s) (not (.exists (io/file s)))))
-      (throw (ex-info (str "Configuration option " k " does not refer to an existing file")
-                      {:option k :value s})))
+      (throw (ex-info (str "Configuration option " (key-to-env k) " does not refer to an existing file")
+                      {:key k :value s})))
     s))
 
 (defn mk-config
