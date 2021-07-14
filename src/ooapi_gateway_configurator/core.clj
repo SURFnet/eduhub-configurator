@@ -18,9 +18,9 @@
    :auth-client-id        nil
    :auth-client-secret    nil
    :auth-user-info-uri    nil
-
-   :gateway-config-yaml nil
-   :pipeline            nil})
+   :auth-redirect-uri     "/oauth2/conext/callback"
+   :gateway-config-yaml   nil
+   :pipeline              nil})
 
 (defn key-to-env
   [k]
@@ -76,7 +76,8 @@
            :user-info-uri    (get-str env :auth-user-info-uri :required? true)
            :client-id        (get-str env :auth-client-id :required? true)
            :client-secret    (get-str env :auth-client-secret :required? true)
-           :group-ids        (get-set env :auth-conext-group-ids :required? true)}})
+           :group-ids        (get-set env :auth-conext-group-ids :required? true)
+           :redirect-uri     (get-str env :auth-redirect-uri)}})
 
 (defonce server-atom (atom nil))
 

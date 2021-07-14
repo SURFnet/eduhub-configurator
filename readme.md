@@ -79,6 +79,19 @@ For testing, this should be set to
 "https://connect.test.surfconext.nl/oidc/userinfo". In production,
 "https://connect.surfconext.nl/oidc/userinfo" should be used.
 
+### AUTH_REDIRECT_URI
+
+The callback URI that will be passed to the OIDC server. Make sure
+this URI points to the "/oauth2/conext/callback" endpoint.
+
+The default is "/oauth2/conext/callback", which will be resolved to a
+full URL based on the request that starts the authentication
+process.
+
+The default will not work when the configurator service is behind a
+TLS terminating proxy and you need the redirect to use HTTPS. You then
+have to specify a full URL to ensure a matching hostname and scheme,
+like "https://manage.test.gateway.eduapi.nl/oauth2/conext/callback"
 
 ### AUTH_CONEXT_GROUP_IDS
 

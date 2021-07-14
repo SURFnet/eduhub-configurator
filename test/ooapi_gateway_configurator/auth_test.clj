@@ -37,7 +37,8 @@
                                  :access-token-uri "http://localhost:9991/oidc/token"
                                  :user-info-uri    "http://localhost:9991/oidc/userinfo"
                                  :client-id        client-id
-                                 :client-secret    client-secret})
+                                 :client-secret    client-secret
+                                 :redirect-uri     "/oauth2/conext/callback"})
       (wrap-defaults site-defaults)))
 
 (defn- mk-client

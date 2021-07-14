@@ -51,7 +51,8 @@
                    access-token-uri
                    user-info-uri
                    client-id
-                   client-secret]}]
+                   client-secret
+                   redirect-uri]}]
   (-> handler
       (user-info/wrap-user-info {:conext {:user-info-uri user-info-uri}})
       (oauth2/wrap-oauth2 {:conext {:authorize-uri    authorize-uri
@@ -60,7 +61,7 @@
                                     :client-secret    client-secret
                                     :scopes           ["openid"]
                                     :launch-uri       "/oauth2/conext"
-                                    :redirect-uri     "/oauth2/conext/callback"
+                                    :redirect-uri     redirect-uri
                                     :landing-uri      "/"}})
       wrap-auth-error))
 
