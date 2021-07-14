@@ -3,12 +3,16 @@
             [environ.core :refer [env]]
             [ooapi-gateway-configurator.core :as core]))
 
+(defn mk-dev-config
+  []
+  (-> env
+      (assoc :gateway-config-yaml "resources/test/gateway.config.yml"
+             :pipeline            "test")
+      (core/mk-config)))
+
 (defn start!
   []
-  (core/start! (-> env
-                   (assoc :gateway-config-yaml "resources/test/gateway.config.yml"
-                          :pipeline            "test")
-                   (core/mk-config))))
+  (core/start! (mk-dev-config)))
 
 (defn stop!
   []
