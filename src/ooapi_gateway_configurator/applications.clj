@@ -77,8 +77,11 @@
 (defn- index-page
   "List of applications hiccup."
   [applications]
-  [:div
-   [:h2 "Applications"]
+  [:div.index
+   [:nav
+    [:a {:href "/"} "⌂"]
+    " / "
+    [:a "Applications"]]
    [:ul
     (for [id (->> applications (map :id) (sort))]
       [:li [:a {:href (url-encode id)} (escape-html id)]])]
@@ -88,12 +91,18 @@
   "Application detail hiccup."
   [{:keys [orig-id] :as application} & {:keys [dirty]}]
   [:div.detail
-   (when orig-id
-     [:nav
-      [:a.application (escape-html orig-id)]
-      " / "
-      [:a.access-control-list {:href (str orig-id "/access-control-list")}
-       "Access Control List"]])
+   (into
+    [:nav
+     [:a {:href "/"} "⌂"]
+     " / "
+     [:a {:href "./"} "Applications"]
+     " / "]
+    (if orig-id
+      [[:a.application (escape-html orig-id)]
+       " / "
+       [:a.access-control-list {:href (str orig-id "/access-control-list")}
+        "Access Control List"]]
+      [[:a.application "New application"]]))
 
    (if orig-id
      [:h2 "Edit Application"]

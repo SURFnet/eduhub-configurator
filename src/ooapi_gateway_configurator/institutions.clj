@@ -212,8 +212,11 @@
 (defn- index-page
   "List of institution hiccup."
   [institutions]
-  [:div
-   [:h2 "Institutions"]
+  [:div.index
+   [:nav
+    [:a {:href "/"} "⌂"]
+    " / "
+    [:a "Institutions"]]
    [:ul
     (for [id (->> institutions (map :id) (sort))]
       [:li [:a {:href (url-encode id)} (escape-html id)]])]
@@ -223,12 +226,18 @@
   "Institution detail hiccup."
   [{:keys [orig-id] :as institution} & {:keys [dirty]}]
   [:div.detail
-   (when orig-id
-     [:nav
-      [:a.institution (escape-html orig-id)]
-      " / "
-      [:a.access-control-list {:href (str orig-id "/access-control-list")}
-       "Access Control List"]])
+   (into
+    [:nav
+     [:a {:href "/"} "⌂"]
+     " / "
+     [:a {:href "./"} "Institutions"]
+     " / "]
+    (if orig-id
+      [[:a.institution (escape-html orig-id)]
+       " / "
+       [:a.access-control-list {:href (str orig-id "/access-control-list")}
+        "Access Control List"]]
+      [[:a.institution "New institution"]]))
 
    (if orig-id
      [:h2 "Edit Institution"]

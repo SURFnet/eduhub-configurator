@@ -14,6 +14,8 @@
 (defn main-page
   [req]
   [:div.main-page
+   [:nav
+    [:a {:href "/"} "⌂"]]
    [:ul
     [:li [:a {:href "applications/"}
           "Applications"]]

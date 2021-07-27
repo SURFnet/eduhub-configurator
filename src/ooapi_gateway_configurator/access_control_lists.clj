@@ -76,6 +76,12 @@
   [{:keys [id] :as access-control-list} context api-paths & {:keys [scroll-to dirty]}]
   [:div.detail
    [:nav
+    [:a {:href "/"} "⌂"]
+    " / "
+    [:a {:href "../", :class context}
+     ({:application "Applications"
+       :institution "Institutions"} context)]
+    " / "
     [:a {:href (str "../" (url-encode id)), :class context}
      (escape-html id)]
     " / "

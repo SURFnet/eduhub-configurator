@@ -5,8 +5,8 @@ html {
 
 body {
     background: white;
-    margin: 2em auto;
-    padding: 2em;
+    margin: 1rem auto;
+    padding: 1rem;
     max-width: 40em;
     line-height: 1.5;
 }
@@ -16,7 +16,7 @@ header {
 }
 
 header h1 {
-    margin: 0 0 1em 0;
+    margin: 0 0 1rem 0;
 }
 
 header .login {
@@ -44,6 +44,11 @@ header .login pre {
 header .login pre:hover {
     width: 5em;
     overflow: inherit;
+}
+nav {
+    background: #f8f8ff;
+    padding: .5rem 1rem;
+    margin: 0 -1rem;
 }
 
 .flash, .warning {
@@ -133,10 +138,6 @@ a.button.primary, button.primary {
 
 .detail {
     position: relative;
-}
-.detail nav {
-    background: #f8f8ff;
-    padding: .5em;
 }
 
 .actions {
