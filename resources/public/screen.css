@@ -13,10 +13,18 @@ body {
 
 header {
     position: relative;
+    margin: -1rem;
+    margin-bottom: 0;
+    padding-bottom: .5rem;
+    background: #eee;
 }
 
 header h1 {
-    margin: 0 0 1rem 0;
+    margin: 0;
+}
+header h1 a {
+    text-decoration: none;
+    color: black;
 }
 
 header .login {
@@ -45,6 +53,7 @@ header .login pre:hover {
     width: 5em;
     overflow: inherit;
 }
+
 nav {
     background: #f8f8ff;
     padding: .5rem 1rem;
@@ -55,6 +64,7 @@ nav {
     border: solid #f80 .2em;
     background: #fea;
     padding: 1em;
+    margin: 0;
     white-space: pre;
 }
 
@@ -70,19 +80,22 @@ label {
     font-weight: bold;
 }
 input {
-    width: 100%;
-    font-size: 1em;
+    width: calc(100% - 1.5rem);
+    font-size: 1rem;
+    line-height: 2rem;
 }
 input[type=checkbox],
 input[type=radio] {
     width: 2em;
+    line-height: 2rem;
 }
-
 select, option {
-    font-size: 1em;
+    font-size: 1rem;
+    height: 2rem;
 }
 input[type=submit] {
     width: inherit;
+    line-height: 2rem;
 }
 a.button, button, input[type=submit] {
     display: inline-block;
@@ -104,10 +117,10 @@ a.button, button, input[type=submit] {
     -webkit-appearance: none;
 }
 a.button, button, input[type=submit] {
-    line-height: 2.5em;
+    line-height: 2.5rem;
 }
 a.button.secondary, button.secondary, input[type=submit].secondary {
-    line-height: inherit;
+    line-height: 2rem;
 }
 a.button:hover, button:hover, input[type=submit]:hover {
     transition: background 0.2s;
@@ -141,12 +154,15 @@ a.button.primary, button.primary {
 }
 
 .actions {
-    padding: 2em 0 0 0;
+    padding: 1rem;
+    margin: -1rem;
+    margin-top: 1rem;
+    background: #f8f8ff;
 }
 
 .bottom-actions {
     position: absolute;
-    bottom: 0;
+    bottom: 1rem;
     right: 0;
     margin-right: 0;
 }
@@ -194,7 +210,7 @@ label.path, label.version {
 .member {
     position: relative;
 }
-.member .actions {
+.member .secondary-actions {
     position: absolute;
     top: 0;
     right: 0;
@@ -202,7 +218,7 @@ label.path, label.version {
 }
 
 .commit-status {
-    margin-top: 1rem;
+    margin-top: 2rem;
 }
 
 .commit-status button {

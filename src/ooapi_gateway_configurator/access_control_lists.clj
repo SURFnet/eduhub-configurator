@@ -32,7 +32,7 @@
        [:h3 [:a {:href (str ({:application "/institutions/"
                               :institution "/applications/"} context) id)}
              (escape-html id)]]
-       [:div.actions
+       [:div.secondary-actions
         [:input {:type  "submit", :class "secondary"
                  :name  (str "select-all-" id)
                  :value "Select all"}]

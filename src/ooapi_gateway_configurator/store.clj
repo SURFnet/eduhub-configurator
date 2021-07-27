@@ -122,7 +122,7 @@
          {:action "/versioning"
           :method "post"}
          "Some changes since deploy at " (html/time last-commit) "."
-         [:div.actions
+         [:div.secundary-actions
           [:button {:type    "submit"
                     :name    "commit"
                     :value   "true"

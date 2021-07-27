@@ -85,7 +85,8 @@
    [:ul
     (for [id (->> applications (map :id) (sort))]
       [:li [:a {:href (url-encode id)} (escape-html id)]])]
-   [:a {:href :new, :class "button"} "New application"]])
+   [:div.actions
+    [:a {:href :new, :class "button"} "New application"]]])
 
 (defn- detail-page
   "Application detail hiccup."

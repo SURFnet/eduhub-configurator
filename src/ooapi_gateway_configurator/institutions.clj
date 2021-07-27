@@ -220,7 +220,8 @@
    [:ul
     (for [id (->> institutions (map :id) (sort))]
       [:li [:a {:href (url-encode id)} (escape-html id)]])]
-   [:a {:href :new, :class "button"} "New institution"]])
+   [:div.actions
+    [:a {:href :new, :class "button"} "New institution"]]])
 
 (defn- detail-page
   "Institution detail hiccup."
