@@ -75,6 +75,9 @@
       (contains? #{"http" "https"} (.getProtocol url)))
     (catch Exception _ false)))
 
+(def id-pattern-re #"[a-zA-Z0-9.-]*")
+(def id-pattern-message "only a-z, A-Z, 0-9, . and - characters allowed")
+
 (defn- form-errors
   [{:keys [id url auth
            header-names header-values
@@ -87,8 +90,8 @@
     (= "new" id)
     (conj "ID can not be 'new' (reserved word)")
 
-    (and id (not (re-matches #"[a-zA-Z0-8_:-]*" id)))
-    (conj "ID can only contain letters, digits, _, : or -.")
+    (and id (not (re-matches id-pattern-re id)))
+    (conj (str "ID pattern does not match: " id-pattern-message))
 
     (s/blank? url)
     (conj "URL can not be blank")
@@ -138,9 +141,9 @@
            oauth-url oauth-client-id oauth-client-secret oauth-scope]}]
   [[:div.field
     [:label {:for "id"} "ID "
-     [:span.info "only letters, digits, _, : or -"]]
-    [:input {:type "text", :pattern "[a-zA-Z0-8_:-]*", :required true
-             :id   "id",   :name    "id",              :value    id}]]
+     [:span.info (escape-html id-pattern-message)]]
+    [:input {:type "text", :pattern id-pattern-re, :required true
+             :id   "id",   :name    "id",          :value    id}]]
 
    [:div.field
     [:label {:for "url"} "URL"]

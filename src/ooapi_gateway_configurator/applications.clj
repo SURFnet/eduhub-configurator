@@ -41,6 +41,9 @@
             {:passwordSalt salt
              :passwordHash (hash-password password salt)}))))
 
+(def id-pattern-re #"[a-zA-Z0-9_:-]*")
+(def id-pattern-message "only a-z, A-Z, 0-9, _, : and - characters allowed")
+
 (defn- form-errors
   [{:keys [id]}]
   (cond-> []
@@ -50,8 +53,8 @@
     (= "new" id)
     (conj "ID can not be 'new' (reserved word)")
 
-    (and id (not (re-matches #"[a-zA-Z0-8_:-]*" id)))
-    (conj "ID can only contain letters, digits, _, : or -.")
+    (and id (not (re-matches id-pattern-re id)))
+    (conj (str "ID pattern does not match: " id-pattern-message))
 
     :finally seq))
 
@@ -59,8 +62,8 @@
   (let [show-password (or (not orig-id) reset-password)]
     [[:div.field
       [:label {:for "id"} "ID "
-       [:span.info "only letters, digits, _, : or -"]]
-      [:input {:type  "text", :pattern "[a-zA-Z0-8_:-]*", :required true
+       [:span.info (escape-html id-pattern-message)]]
+      [:input {:type  "text", :pattern id-pattern-re, :required true
                :id    "id",   :name    "id"
                :value id}]]
      [:div.field
