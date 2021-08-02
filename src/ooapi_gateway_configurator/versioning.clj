@@ -57,16 +57,16 @@
             [clojure.java.io :as io]
             [clojure.string :as string]
             [ooapi-gateway-configurator.digest :as digest])
-  (:import java.io.PushbackReader))
+  (:import [java.io File PushbackReader]))
 
 (defn- digest
   [contents]
   (digest/hex (digest/sha256 contents)))
 
 (defn- read-source-file
-  [file]
-  (let [f        (io/as-file file)
-        contents (clojure.core/slurp f)
+  [source-path]
+  (let [f        (io/as-file source-path)
+        contents (slurp f)
         version  (digest contents)]
     {:contents       contents
      :version        version
@@ -88,13 +88,24 @@
               *print-readably* true]
       (pr contents))))
 
-(defn stage-file-path
-  [source-path]
-  (str source-path ".stage"))
+(defn- work-path [work-dir source-path suffix]
+  (if work-dir
+    (str work-dir
+         File/separatorChar
+         ;; avoid clash when reusing work-dir for different source-paths
+         (string/replace source-path
+                         #"(?i)[^a-z0-9]"
+                         #(format "_%02X_" (-> % first int)))
+         suffix)
+    (str source-path suffix)))
+
+(defn- stage-file-path
+  [source-path {:keys [work-dir]}]
+  (work-path work-dir source-path  ".stage"))
 
 (defn- read-stage
-  [source-path]
-  (read-edn (stage-file-path source-path)))
+  [source-path opts]
+  (read-edn (stage-file-path source-path opts)))
 
 
 ;; all file access is serialized through this monitor
@@ -117,11 +128,11 @@
   Returns a map of :contents, :version and :source-version. If
   `parse-fn` is provided, it's applied to :contents after calculating
   the digest."
-  ([source-path parse-fn]
-   (update (checkout source-path) :contents parse-fn))
-  ([source-path]
+  ([source-path parse-fn opts]
+   (update (checkout source-path opts) :contents parse-fn))
+  ([source-path opts]
    (locking monitor
-     (let [staged (read-stage source-path)
+     (let [staged (read-stage source-path opts)
            source (read-source-file source-path)]
        (if (= (:version source) (:source-version staged))
          staged
@@ -137,83 +148,81 @@
 
   If the stage succeeds, returns `true`. If a conflict is detected,
   discards the contents and returns `nil`."
-  ([source-path previous-version contents]
-   {:pre [(string? source-path) (string? previous-version) (string? contents)]}
+  ([source-path previous-version contents opts]
+   {:pre [(string? source-path)
+          (string? previous-version)
+          (string? contents)]}
    (locking monitor
-     (let [{:keys [source-version version]} (checkout source-path)]
+     (let [{:keys [source-version version]} (checkout source-path opts)]
        (when (= version previous-version)
-         (write-edn (stage-file-path source-path)
+         (write-edn (stage-file-path source-path opts)
                     {:contents       contents
                      :version        (digest contents)
                      :source-version source-version})
          true))))
-  ([source-path source-version contents serialize-fn]
-   (stage! source-path source-version (serialize-fn contents))))
+  ([source-path source-version contents serialize-fn opts]
+   (stage! source-path source-version source-version (serialize-fn contents) opts)))
 
 (defn unstage!
   "Remove the staged version. The next checkout will return the
   then-current source version.
 
   Returns true if stage was deleted, nil if nothing was staged."
-  [source-path]
-  (let [f (io/as-file (stage-file-path source-path))]
+  [source-path opts]
+  (let [f (io/as-file (stage-file-path source-path opts))]
     (when (.exists f)
       (.delete f)
       true)))
 
-(defn backup-file-path
-  [source-path]
+(defn- backup-file-path
+  [source-path {:keys [work-dir]}]
   (let [f        (io/as-file source-path)
         modified (.lastModified f)]
     (when-not (.exists f)
       (throw (ex-info (str "Can't backup non-existing file '" source-path "'")
                       {:source-path source-path})))
-    (str source-path ".backup." modified)))
+    (work-path work-dir source-path (str ".backup." modified))))
 
 (defn commit!
   "Write the staged file to the source file. Keep a backup of the source.
 
   Returns true if the commit succeeded. If the source was changed
   since the last commit, discard this commit and return nil."
-  [source-path]
-  (let [stage-path (stage-file-path source-path)]
+  [source-path opts]
+  (let [stage-path (stage-file-path source-path opts)]
     (locking monitor
       (when-let [staged (read-edn stage-path)]
-        (let [source      (read-source-file source-path)
-              backup-path (backup-file-path source-path)]
+        (let [backup-path (backup-file-path source-path opts)
+              source      (read-source-file source-path)]
           (when (= (:source-version staged) (:source-version source))
-            (clojure.core/spit backup-path (:contents source))
-            (clojure.core/spit source-path (:contents staged))
+            (spit backup-path (:contents source))
+            (spit source-path (:contents staged))
             (.delete (io/as-file stage-path))
             true))))))
 
-(defn- list-siblings
-  [path]
-  (let [f        (io/as-file path)
-        dir-path (.getParent f)
-        dir      (io/as-file (.getParent f))]
-    (when dir
-      (map #(str dir-path "/" %) (.list dir)))))
-
 (defn reset!
   "Stage an earlier backup of `source-path`."
-  [source-path previous-version timestamp]
+  [source-path previous-version timestamp {:keys [work-dir] :as opts}]
   {:pre [(string? source-path)
          (string? previous-version)
          (or (int? timestamp) (inst? timestamp))]}
   (let [timestamp   (if (int? timestamp)
                       timestamp
                       (inst-ms timestamp))
-        backup-path (str source-path ".backup." timestamp)]
-    (stage! source-path previous-version (slurp backup-path))))
+        backup-path (work-path work-dir source-path (str ".backup." timestamp))]
+    (stage! source-path previous-version (slurp backup-path) opts)))
 
 (defn backups
-  [source-path]
-  (let [backup? (fn [b]
-                  (and (.isFile (io/as-file b))
-                       (string/starts-with? b (str source-path ".backup."))))]
-    (->> source-path
-         list-siblings
+  [source-path {:keys [work-dir]}]
+  (let [dir-path             (or work-dir (.getParent (io/as-file source-path)))
+        backup-path-beg (work-path work-dir source-path ".backup.")
+        backup?         (fn [b]
+                          (and (.isFile (io/as-file b))
+                               (string/starts-with? b backup-path-beg)))]
+    (->> dir-path
+         (io/as-file)
+         (.list)
+         (map #(str dir-path "/" %))
          (filter backup?)
          (map (fn [path]
                 {:path      path
@@ -225,8 +234,8 @@
          reverse)))
 
 (defn versions
-  [source-path]
+  [source-path opts]
   (cons {:path      source-path
          :deployed? true
          :timestamp (java.time.Instant/ofEpochMilli (.lastModified (io/file source-path)))}
-        (backups source-path)))
+        (backups source-path opts)))

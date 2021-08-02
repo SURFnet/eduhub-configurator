@@ -34,8 +34,10 @@
    :auth-client-secret    nil
    :auth-user-info-uri    nil
    :auth-redirect-uri     "/oauth2/conext/callback"
-   :gateway-config-yaml   nil
-   :pipeline              nil})
+
+   :gateway-config-yaml nil
+   :work-dir            nil
+   :pipeline            nil})
 
 (defn key-to-env
   [k]
@@ -46,8 +48,8 @@
 
 (defn get-env
   [env k & {:keys [required?] :as opts}]
-  (if-some [v (get env k (get default-env k))]
-    v
+  (if-some [s (get env k (get default-env k))]
+    s
     (when required?
       (throw (ex-info (str "Required configuration option " (key-to-env k) " was not provided")
                       {:key  k
@@ -72,10 +74,24 @@
                         {:key k :value s}))))))
 
 (defn get-file
-  [env k & {:keys [existing?]}]
-  (let [s (get-env env k)]
-    (when (and existing? (or (not s) (not (.exists (io/file s)))))
+  [env k & opts]
+  (let [{:keys [existing?]} (apply hash-map opts)
+        s                   (apply get-env env k opts)]
+    (when (and s
+               existing?
+               (not (.exists (io/file s))))
       (throw (ex-info (str "Configuration option " (key-to-env k) " does not refer to an existing file")
+                      {:key k :value s})))
+    s))
+
+(defn get-dir
+  [env k & opts]
+  (let [{:keys [existing?]} (apply hash-map opts)
+        s                   (apply get-env env k opts)]
+    (when (and s
+               existing?
+               (not (.isDirectory (io/file s))))
+      (throw (ex-info (str "Configuration option " (key-to-env k) " does not refer to an existing directory")
                       {:key k :value s})))
     s))
 
@@ -84,7 +100,8 @@
   {:jetty {:host  (get-str env :http-host)
            :port  (get-int env :http-port)
            :join? false}
-   :store {:gateway-config-yaml (get-file env :gateway-config-yaml :existing? true)
+   :store {:gateway-config-yaml (get-file env :gateway-config-yaml :required? true :existing? true)
+           :work-dir            (get-dir env :work-dir :existing? true)
            :pipeline            (get-str env :pipeline :required? true)}
    :auth  {:authorize-uri    (get-str env :auth-authorize-uri :required? true)
            :access-token-uri (get-str env :auth-access-token-uri :required? true)

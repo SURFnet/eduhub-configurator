@@ -30,7 +30,7 @@ The service can be build as a standalone jar:
 This will generate
 `target/uberjar/ooapi-gateway-configurator.jar`.
 
-You will need only a JDK (no leiningen) to run the jar:
+You will need only a JVM (no leiningen) to run the jar:
 
     java -jar target/uberjar/ooapi-gateway-configurator.jar
 
@@ -38,23 +38,24 @@ You will need only a JDK (no leiningen) to run the jar:
 
 This application is mostly configured using environment variables.
 
-### HTTP_HOST
+### `HTTP_HOST`
 
 The hostname that the web server binds to. Default is "localhost"
 
-### HTTP_PORT
+### `HTTP_PORT`
 
 The port that the web server binds to. Default is "8080"
 
-### AUTH_AUTHORIZE_URI
+### `AUTH_AUTHORIZE_URI`
 
 The OIDC authorize URI to use for initiating an authorization
 flow.
 
 For testing, this should be set to
-"https://connect.test.surfconext.nl/oidc/authorize". In production, "https://connect.surfconext.nl/oidc/authorize" should be used.
+"https://connect.test.surfconext.nl/oidc/authorize". In production,
+"https://connect.surfconext.nl/oidc/authorize" should be used.
 
-### AUTH_ACCESS_TOKEN_URI
+### `AUTH_ACCESS_TOKEN_URI`
 
 The OIDC token endpoint to use.
 
@@ -62,16 +63,16 @@ For testing, this should be set to
 "https://connect.test.surfconext.nl/oidc/token". In production,
 "https://connect.surfconext.nl/oidc/token" should be used.
 
-### AUTH_CLIENT_ID
+### `AUTH_CLIENT_ID`
 
 The OIDC client ID to use. This should be
 "ooapi-gateway-configurator.surf.nl"
 
-### AUTH_CLIENT_SECRET
+### `AUTH_CLIENT_SECRET`
 
 The OIDC client secret.
 
-### AUTH_USER_INFO_URI
+### `AUTH_USER_INFO_URI`
 
 The OIDC userinfo_endpoint to use. 
 
@@ -79,7 +80,7 @@ For testing, this should be set to
 "https://connect.test.surfconext.nl/oidc/userinfo". In production,
 "https://connect.surfconext.nl/oidc/userinfo" should be used.
 
-### AUTH_REDIRECT_URI
+### `AUTH_REDIRECT_URI`
 
 The callback URI that will be passed to the OIDC server. Make sure
 this URI points to the "/oauth2/conext/callback" endpoint.
@@ -93,7 +94,7 @@ TLS terminating proxy and you need the redirect to use HTTPS. You then
 have to specify a full URL to ensure a matching hostname and scheme,
 like "https://manage.test.gateway.eduapi.nl/oauth2/conext/callback"
 
-### AUTH_CONEXT_GROUP_IDS
+### `AUTH_CONEXT_GROUP_IDS`
 
 A comma separated list of Conext group ids (urns). Access to the
 application is granted to users who are members of any of the groups.
@@ -101,21 +102,31 @@ application is granted to users who are members of any of the groups.
 For testing, you can use
 "urn:collab:group:test.surfconext.nl:nl:surfnet:diensten:beta"
 
-### GATEWAY_CONFIG_YAML
+### `GATEWAY_CONFIG_YAML`
 
 The path to the gateway configuration file. This file must exist and
 be readable and writable for the application process.
 
-### PIPELINE
+### `PIPELINE`
 
 The name of the pipeline to be configured in the gateway configuration file.
 
-### TZ
+### `WORK_DIR`
+
+Directory where backups and staging information is kept. This
+directory needs to exist, be writable and persist through restarts and
+reboots. When left unset, the same directory as that of
+`GATEWAY_CONFIG_YAML` will be used.
+
+Note: the gateway itself does not need access to this directory.
+
+### `TZ`
 
 Versions are listed with the date and time they are deployed. By
 default the system timezone is used to display these timestamps. Use
-the `TZ` variable to override this setting. Note: this is a POSIX
-environment variable which the JVM honors.
+the `TZ` variable to override this setting.
+
+Note: this is a POSIX environment variable which the JVM honors.
 
 # Configuring logging
 

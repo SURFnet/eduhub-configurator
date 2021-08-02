@@ -24,13 +24,8 @@
             [ring.util.response :as response])
   (:import java.time.Instant))
 
-(defn- checkout-yaml [yaml-file]
-  (versioning/checkout yaml-file yaml/parse-string))
-
-(defn- in-yaml [yaml-file f & args]
-  (let [{:keys [version contents]} (checkout-yaml yaml-file)]
-    (versioning/stage! yaml-file version
-                       (yaml/generate-string (apply f contents args)))))
+(defn- checkout-yaml [yaml-file opts]
+  (versioning/checkout yaml-file yaml/parse-string opts))
 
 (defn- acl->access-control-list
   "Transform gatekeeper policy action to a access control list for the
@@ -73,17 +68,18 @@
           app-ids))
 
 (defn- fetch
-  [{:keys [gateway-config-yaml pipeline]}]
-  (let [{{:keys [serviceEndpoints pipelines] :as gw} :contents
-         current-version                             :version
-         :as                                         checkout} (checkout-yaml gateway-config-yaml)
-        {:keys [policies apiEndpoints]}                        (get pipelines (keyword pipeline))
-        api                                                    (-> apiEndpoints first keyword)
-        apps                                                   (klist/get-in policies [:gatekeeper :action :apps])]
+  [{:keys [gateway-config-yaml work-dir pipeline]}]
+  (let [{{:keys [serviceEndpoints pipelines]
+          :as   gw}      :contents
+         current-version :version
+         :as             checkout}      (checkout-yaml gateway-config-yaml {:work-dir work-dir})
+        {:keys [policies apiEndpoints]} (get pipelines (keyword pipeline))
+        api                             (-> apiEndpoints first keyword)
+        apps                            (klist/get-in policies [:gatekeeper :action :apps])]
     {::state/applications         apps
      ::state/institutions         serviceEndpoints
      ::uncommitted?               (versioning/uncommitted? checkout)
-     ::versions                   (versioning/versions gateway-config-yaml)
+     ::versions                   (versioning/versions gateway-config-yaml {:work-dir work-dir})
      ::current-version            current-version
      ::state/access-control-lists (-> policies
                                       (klist/get-in [:gatekeeper :action :acls])
@@ -104,24 +100,29 @@
 
 (defn- put
   [{:keys [::state/applications ::state/institutions ::state/access-control-lists]}
-   {:keys [gateway-config-yaml pipeline]}]
-  (in-yaml gateway-config-yaml
-           #(cond-> %
-              institutions
-              (assoc-in [:serviceEndpoints] institutions)
+   {:keys [gateway-config-yaml work-dir pipeline]}]
+  (let [opts               {:work-dir work-dir}
+        {:keys [version
+                contents]} (checkout-yaml gateway-config-yaml opts)
+        new-contents       (cond-> contents
+                             institutions
+                             (assoc-in [:serviceEndpoints] institutions)
 
-              access-control-lists
-              (klist/update-in [:pipelines (keyword pipeline) :policies :gatekeeper]
-                               klist/assoc-in [:action :acls]
-                               (acls->gatekeeper-acls access-control-lists))
+                             access-control-lists
+                             (klist/update-in [:pipelines (keyword pipeline) :policies :gatekeeper]
+                                              klist/assoc-in [:action :acls]
+                                              (acls->gatekeeper-acls access-control-lists))
 
-              applications
-              (klist/update-in [:pipelines (keyword pipeline) :policies :gatekeeper]
-                               klist/assoc-in [:action :apps] applications))))
+                             applications
+                             (klist/update-in [:pipelines (keyword pipeline) :policies :gatekeeper]
+                                              klist/assoc-in [:action :apps] applications))]
+        (versioning/stage! gateway-config-yaml version
+                           (yaml/generate-string new-contents)
+                           opts)))
 
 (defn- commit!
-  [{:keys [gateway-config-yaml]}]
-  (versioning/commit! gateway-config-yaml))
+  [{:keys [gateway-config-yaml work-dir]}]
+  (versioning/commit! gateway-config-yaml {:work-dir work-dir}))
 
 (defn- last-commit
   [{:keys [gateway-config-yaml]}]
@@ -181,7 +182,7 @@
 
 (defn wrap
   "Middleware to allow reading and writing configuration."
-  [app {:keys [gateway-config-yaml] :as config}]
+  [app {:keys [gateway-config-yaml work-dir] :as config}]
   (fn [{:keys [request-method uri params] :as req}]
     (if (and (= :post request-method)
              (= "/versioning" uri))
@@ -189,21 +190,24 @@
        (response/redirect "/" :see-other)
        (cond
          (:commit params)
-         (do (versioning/commit! gateway-config-yaml)
+         (do (versioning/commit! gateway-config-yaml {:work-dir work-dir})
              {:flash "Deployed changes"})
 
          (and (:reset params) (or (= "current" (:timestamp params))
                                   (nil? (:timestamp params))))
-         (do (versioning/unstage! gateway-config-yaml)
-             {:flash "Discarded changes - reset to currently deployed version."})
+         (do (versioning/unstage! gateway-config-yaml {:work-dir work-dir})
+             {:flash "Discarded changes — reset to currently deployed version."})
 
          (and (:reset params) (:timestamp params))
          (let [timestamp (-> params
                              :timestamp
                              Long/parseLong
                              java.time.Instant/ofEpochMilli)]
-           (if (versioning/reset! gateway-config-yaml (:current-version params) timestamp)
-             {:flash (str "Discarded changes - reset to version of " (html-time/human-time timestamp))}
+           (if (versioning/reset! gateway-config-yaml
+                                  (:current-version params)
+                                  timestamp
+                                  {:work-dir work-dir})
+             {:flash (str "Discarded changes — reset to version of " (html-time/human-time timestamp))}
              {:flash "Reset failed!"}))))
       (let [cur (fetch config)
             res (-> req

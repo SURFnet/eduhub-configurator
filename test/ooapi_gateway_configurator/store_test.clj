@@ -85,8 +85,7 @@
                ::state/institutions         {:backend {:url "http://example.com/put-test"}}
                ::state/access-control-lists {:fred {:backend #{"/"}}}}]
     (testing "round trip"
-      (#'store/put state
-                   *config*)
+      (#'store/put state *config*)
       (#'store/commit! *config*)
       (is (= state (-> (#'store/fetch *config*)
                        (select-keys [::state/applications
