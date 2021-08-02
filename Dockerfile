@@ -6,4 +6,5 @@ RUN lein uberjar
 
 FROM gcr.io/distroless/java:11
 COPY --from=builder /app/target/uberjar/ooapi-gateway-configurator.jar /ooapi-gateway-configurator.jar
+ENV TZ=CET
 CMD ["ooapi-gateway-configurator.jar"]

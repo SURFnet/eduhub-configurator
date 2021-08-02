@@ -110,6 +110,13 @@ be readable and writable for the application process.
 
 The name of the pipeline to be configured in the gateway configuration file.
 
+### TZ
+
+Versions are listed with the date and time they are deployed. By
+default the system timezone is used to display these timestamps. Use
+the `TZ` variable to override this setting. Note: this is a POSIX
+environment variable which the JVM honors.
+
 # Configuring logging
 
 Logging uses [logback](https://www.baeldung.com/logback). There is an
