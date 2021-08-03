@@ -17,7 +17,7 @@
   (:require [clj-yaml.core :as yaml]
             [clojure.java.io :as io]
             [ooapi-gateway-configurator.form :as form]
-            [ooapi-gateway-configurator.html :as html]
+            [ooapi-gateway-configurator.html-time :as html-time]
             [ooapi-gateway-configurator.state :as state]
             [ooapi-gateway-configurator.store.klist :as klist]
             [ooapi-gateway-configurator.versioning :as versioning]
@@ -132,16 +132,16 @@
   (if last-commit
     [:div.commit-status
      (when uncommitted?
-       [:fieldset [:legend "Pending changes"]
+       [:fieldset.uncommitted [:legend "Pending changes"]
         (form/form
          {:action "/versioning"
           :method "post"}
-         "Some changes since deploy at " (html/time last-commit) "."
+         "Some changes since deploy at " (html-time/time last-commit) "."
          [:div.secundary-actions
-          [:button {:type    "submit"
-                    :name    "commit"
-                    :value   "true"
-                    :onclick "return confirm('Deploy edits?')"}
+          [:button.primary {:type    "submit"
+                            :name    "commit"
+                            :value   "true"
+                            :onclick "return confirm('Deploy edits?')"}
            "Deploy changes"]
           [:button {:type    "submit"
                     :name    "reset"
@@ -167,14 +167,15 @@
                         :value   (if deployed?
                                    "current"
                                    (inst-ms timestamp))}]
-               (html/time timestamp)
+               (html-time/time timestamp)
                (when deployed?
-                 [:em.deployed "Currently deployed"])])
+                 [:em.deployed " &mdash; Currently deployed"])])
             versions)
-       [:button {:type  "submit"
-                 :name  "reset"
-                 :value "true"}
-        "Reset pending changes"]])]
+       [::div.secundary-actions
+        [:button {:type  "submit"
+                  :name  "reset"
+                  :value "true"}
+         "Reset pending changes"]]])]
     [:div.commit-status
      "Configuration error? No value for " ::last-commit "."]))
 
@@ -202,7 +203,7 @@
                              Long/parseLong
                              java.time.Instant/ofEpochMilli)]
            (if (versioning/reset! gateway-config-yaml (:current-version params) timestamp)
-             {:flash (str "Discarded changes - reset to version of " (html/human-time timestamp))}
+             {:flash (str "Discarded changes - reset to version of " (html-time/human-time timestamp))}
              {:flash "Reset failed!"}))))
       (let [cur (fetch config)
             res (-> req

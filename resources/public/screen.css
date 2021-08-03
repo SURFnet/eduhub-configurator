@@ -70,6 +70,17 @@ header .login pre:hover {
     overflow: inherit;
 }
 
+header .uncommited {
+    display: block;
+    text-decoration: none;
+    text-align: right;
+    padding: .3rem 1rem;
+    color: #840;
+    background: #fea;
+    margin-top: .5rem;
+    margin-bottom: -.5rem;
+}
+
 nav {
     background: #f8f8ff;
     padding: .5rem 1rem;
@@ -91,6 +102,9 @@ li {
     list-style-position: inside;
 }
 
+fieldset legend {
+    padding: 0 .5em;
+}
 label {
     display: block;
     font-weight: bold;
@@ -241,6 +255,23 @@ label.path, label.version {
     float: right;
 }
 
-.deployed {
-    margin-left: 1em;
+.commit-status fieldset {
+    border: solid #ddd .2em;
+    background: #f8f8f8;
+}
+.commit-status fieldset legend {
+    background: #f8f8f8;
+    font-style: italic;
+}
+.commit-status fieldset .secundary-actions {
+    margin-top: 1em;
+}
+
+.commit-status fieldset.uncommitted {
+    border: solid #f80 .2em;
+    background: #fea;
+    margin-bottom: 1em;
+}
+.commit-status fieldset.uncommitted legend {
+    background: #fea;
 }
