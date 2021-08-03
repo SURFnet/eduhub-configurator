@@ -234,7 +234,7 @@
    [:nav
     [:a {:href "/"} "⌂"]
     " / "
-    [:a "Institutions"]]
+    [:a.current "Institutions"]]
    [:ul
     (for [id (->> institutions (map :id) (sort))]
       [:li [:a {:href (url-encode id)} (escape-html id)]])]
@@ -252,11 +252,11 @@
      [:a {:href "./"} "Institutions"]
      " / "]
     (if orig-id
-      [[:a.institution (escape-html orig-id)]
+      [[:a.current [:q (escape-html orig-id)]]
        " / "
-       [:a.access-control-list {:href (str orig-id "/access-control-list")}
+       [:a {:href (str orig-id "/access-control-list")}
         "Access Control List"]]
-      [[:a.institution "New institution"]]))
+      [[:a.current "New institution"]]))
 
    (if orig-id
      [:h2 "Edit Institution"]

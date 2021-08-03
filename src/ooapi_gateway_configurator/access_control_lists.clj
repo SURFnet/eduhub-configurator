@@ -98,9 +98,9 @@
        :institution "Institutions"} context)]
     " / "
     [:a {:href (str "../" (url-encode id)), :class context}
-     (escape-html id)]
+     [:q (escape-html id)]]
     " / "
-    [:a "Access Control List"]]
+    [:a.current "Access Control List"]]
 
    [:h2 "Edit Access Control List"]
    (form/form

@@ -83,8 +83,16 @@ header .uncommited {
 
 nav {
     background: #f8f8ff;
-    padding: .5rem 1rem;
     margin: 0 -1rem;
+    padding: 0 .5rem;
+}
+nav a {
+    text-decoration: none;
+    display: inline-block;
+    padding: .5rem;
+}
+nav a.current {
+    font-weight: bold;
 }
 
 .flash, .warning {

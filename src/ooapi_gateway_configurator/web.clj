@@ -15,12 +15,12 @@
 
 (ns ooapi-gateway-configurator.web
   (:require [compojure.core :refer [GET routes wrap-routes]]
-            [compojure.route :refer [not-found resources]]
+            [compojure.route :refer [resources]]
             [ooapi-gateway-configurator.access-control-lists :as access-control-lists]
             [ooapi-gateway-configurator.applications :as applications]
             [ooapi-gateway-configurator.auth :as auth]
             [ooapi-gateway-configurator.auth-pages :as auth-pages]
-            [ooapi-gateway-configurator.html :refer [layout]]
+            [ooapi-gateway-configurator.html :refer [layout not-found]]
             [ooapi-gateway-configurator.institutions :as institutions]
             [ooapi-gateway-configurator.state :as state]
             [ooapi-gateway-configurator.store :as store]
@@ -30,7 +30,7 @@
   [req]
   [:div.main-page
    [:nav
-    [:a {:href "/"} "⌂"]]
+    [:a.current "⌂"]]
    [:ul
     [:li [:a {:href "applications/"}
           "Applications"]]
@@ -49,7 +49,7 @@
     auth/wrap-member-of (get-in config [:auth :group-ids]))
    auth/logout-handler
    (resources "/" {:root "public"})
-   (not-found "nothing here..")))
+   (fn [req] (not-found "Oeps, nothing here.." req))))
 
 (defn mk-app
   [config]

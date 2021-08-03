@@ -105,7 +105,7 @@
    [:nav
     [:a {:href "/"} "⌂"]
     " / "
-    [:a "Applications"]]
+    [:a.current "Applications"]]
    [:ul
     (for [id (->> applications (map :id) (sort))]
       [:li [:a {:href (url-encode id)} (escape-html id)]])]
@@ -123,11 +123,11 @@
      [:a {:href "./"} "Applications"]
      " / "]
     (if orig-id
-      [[:a.application (escape-html orig-id)]
+      [[:a.current [:q (escape-html orig-id)]]
        " / "
-       [:a.access-control-list {:href (str orig-id "/access-control-list")}
+       [:a {:href (str orig-id "/access-control-list")}
         "Access Control List"]]
-      [[:a.application "New application"]]))
+      [[:a.current "New application"]]))
 
    (if orig-id
      [:h2 "Edit Application"]
