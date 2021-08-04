@@ -19,20 +19,20 @@
             :url  "https://www.gnu.org/licenses/gpl-3.0.en.html"}
   :url "https://github.com/SURFnet/ooapi-gateway-configurator"
 
-  :dependencies [[cheshire "5.10.0"]
-                 [ch.qos.logback/logback-classic "1.2.3"]
-                 [clj-commons/clj-yaml "0.7.106"]
+  :dependencies [[cheshire "5.10.1"]
+                 [ch.qos.logback/logback-classic "1.2.5"]
+                 [clj-commons/clj-yaml "0.7.107"]
                  [compojure "1.6.2"]
                  [environ "1.2.0"]
                  [hiccup "1.0.5"]
                  [org.clojure/clojure "1.10.3"]
-                 [org.clojure/data.json "2.2.3"]
+                 [org.clojure/data.json "2.4.0"]
                  [org.clojure/data.xml "0.0.8"]
                  [org.clojure/tools.logging "1.1.0"]
-                 [ring "1.9.3"]
+                 [ring "1.9.4"]
                  [ring-oauth2 "0.1.5"]
-                 [ring/ring-defaults "0.3.2"]
-                 [ring/ring-jetty-adapter "1.9.3"]]
+                 [ring/ring-defaults "0.3.3"]
+                 [ring/ring-jetty-adapter "1.9.4"]]
 
   :main ^:skip-aot ooapi-gateway-configurator.core
 
@@ -42,7 +42,7 @@
                        :uberjar-name "ooapi-gateway-configurator.jar"}
              :dev     {:source-paths ["dev"]
                        :dependencies [[org.clojure/tools.namespace "1.1.0"]
-                                      [clj-kondo "2021.04.23"]
+                                      [clj-kondo "2021.08.03"]
                                       [ring/ring-mock "0.4.0"]
                                       [ring/ring-json "0.5.1"]]
                        :plugins      [[lein-kibit "0.1.8"]]
