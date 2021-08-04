@@ -120,7 +120,7 @@
   (testing "POST /applications/new"
     (let [res (do-post "/applications/new"
                        {:id       "test"
-                        :password ".."})]
+                        :password "0123456789abcdef0123456789abcdef"})]
       (is (= http/see-other (:status res))
           "see other")
       (is (= "http://localhost/applications/" (-> res :headers (get "Location")))
@@ -134,8 +134,9 @@
           "got password stuff"))))
 
 (deftest hash-password
-  (is (= "8a8c6f4ad3d53a19d8847abfc693fd0331d22fa2cbab0e1eea34e39bad8be3b9"
-         (#'applications/hash-password "pass" "salt"))
+  (is (= "083aa7e8c594c639ca378dce248174d5e74bb6d64ad695ccb69ebda1d7278cf6"
+         (#'applications/hash-password "fredfredfredfredfredfredfredfred"
+                                       "wilmawilmawilmawilmawilmawilmawi"))
       "reference values match")
   (let [pass0 (#'applications/generate-random-string)
         salt0 (#'applications/generate-random-string)

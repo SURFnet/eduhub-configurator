@@ -37,8 +37,11 @@
   (hex (repeatedly 16 (partial rand-int 255))))
 
 (defn- hash-password
-  "Hash given password with salt using SHA-256."
+  "Hash given password with salt using SHA-256.  Both pass and salt
+  should be 32 character strings."
   [pass salt]
+  {:pre [(= 32 (count pass))
+         (= 32 (count salt))]}
   (-> (str pass "-" salt) digest/sha256 hex))
 
 (defn- ->form
@@ -60,7 +63,7 @@
 (def id-pattern-message "only a-z, A-Z, 0-9, _, : and - characters allowed")
 
 (defn- form-errors
-  [{:keys [id]}]
+  [{:keys [id password]}]
   (cond-> []
     (s/blank? id)
     (conj "ID can not be blank")
@@ -70,6 +73,9 @@
 
     (and id (not (re-matches id-pattern-re id)))
     (conj (str "ID pattern does not match: " id-pattern-message))
+
+    (and password (not= 32 (count password)))
+    (conj "Password must be 32 characters long")
 
     :finally seq))
 
