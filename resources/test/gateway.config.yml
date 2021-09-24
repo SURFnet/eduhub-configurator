@@ -48,11 +48,11 @@ apiEndpoints:
        - '/rooms'
        - '/rooms/:roomId'
 serviceEndpoints:
-  BasicAuthBackend:
+  Basic.Auth.Backend:
     url: https://example.com/test-backend
     proxyOptions:
       auth: fred:wilma
-  Oauth2Backend:
+  Oauth-2.Backend:
     url: https://example.com/other-test-backend
     proxyOptions:
       oauth2:
@@ -63,7 +63,7 @@ serviceEndpoints:
               grant_type: client_credentials
               client_id: fred
               client_secret: wilma
-  ApiKeyBackend:
+  Api.Key.Backend:
     url: https://example.com/api-key-backend
     proxyOptions:
       headers:
@@ -103,21 +103,21 @@ pipelines:
               acls:
                 - app: fred
                   endpoints:
-                    - endpoint: BasicAuthBackend
+                    - endpoint: Basic.Auth.Backend
                       paths: ['/', '/courses', '/courses/:id']
-                    - endpoint: Oauth2Backend
+                    - endpoint: Oauth-2.Backend
                       paths: ['/', '/courses', '/courses/:id']
                 - app: barney
                   endpoints:
-                    - endpoint: BasicAuthBackend
+                    - endpoint: Basic.Auth.Backend
                       paths: ['/', '/courses', '/courses/:id']
-                    - endpoint: Oauth2Backend
+                    - endpoint: Oauth-2.Backend
                       paths: ['/']
-                    - endpoint: ApiKeyBackend
+                    - endpoint: Api.Key.Backend
                       paths: ['/']
                 - app: bubbles
                   endpoints:
-                    - endpoint: ApiKeyBackend
+                    - endpoint: Api.Key.Backend
                       paths: ['/']
               apps: {
                 "fred": {

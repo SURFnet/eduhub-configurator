@@ -35,24 +35,24 @@
   [{:keys            [url]
     {:keys [auth
             headers
-            oauth2]} :proxyOptions} id]
-  (cond-> {:id            (name id)
-           :orig-id       (name id)
-           :url           url
-           :auth          (cond auth   "basic"
-                                oauth2 "oauth")
-           :header-names  (map as-str (keys headers)) ;; yaml parse may keyword keys
-           :header-values (vals headers)}
-    auth   (assoc :basic-auth-user (first (s/split auth #":" 2))
-                  :basic-auth-pass (last (s/split auth #":" 2)))
-    oauth2 (assoc :oauth-url (-> oauth2 :clientCredentials :tokenEndpoint :url)
-                  :oauth-client-id (-> oauth2 :clientCredentials :tokenEndpoint :params :client_id)
-                  :oauth-client-secret (-> oauth2 :clientCredentials :tokenEndpoint :params :client_secret)
-                  :oauth-scope  (-> oauth2 :clientCredentials :tokenEndpoint :params :scope))))
+            oauth2]} :proxyOptions} orig-id]
+  (cond-> {"id"            orig-id
+           "orig-id"       orig-id
+           "url"           url
+           "auth"          (cond auth   "basic"
+                                 oauth2 "oauth")
+           "header-names"  (map as-str (keys headers)) ;; yaml parse may keyword keys
+           "header-values" (vals headers)}
+    auth   (assoc "basic-auth-user" (first (s/split auth #":" 2))
+                  "basic-auth-pass" (last (s/split auth #":" 2)))
+    oauth2 (assoc "oauth-url" (-> oauth2 :clientCredentials :tokenEndpoint :url)
+                  "oauth-client-id" (-> oauth2 :clientCredentials :tokenEndpoint :params :client_id)
+                  "oauth-client-secret" (-> oauth2 :clientCredentials :tokenEndpoint :params :client_secret)
+                  "oauth-scope"  (-> oauth2 :clientCredentials :tokenEndpoint :params :scope))))
 
 (defn- form->
   "Transform form parameters into an institution."
-  [{:keys [id
+  [{:strs [id
            url
            auth
            basic-auth-user basic-auth-pass
@@ -94,7 +94,7 @@
 (def id-pattern-message "only a-z, A-Z, 0-9, . and - characters allowed")
 
 (defn- form-errors
-  [{:keys [id url auth
+  [{:strs [id url auth
            header-names header-values
            basic-auth-user basic-auth-pass
            oauth-url oauth-client-id oauth-client-secret]}]
@@ -150,7 +150,7 @@
 
 (defn- form
   "Form hiccup for institution params."
-  [{:keys [id url auth
+  [{:strs [id url auth
            header-names header-values
            basic-auth-user basic-auth-pass
            oauth-url oauth-client-id oauth-client-secret oauth-scope]}]
@@ -236,14 +236,14 @@
     " / "
     [:a.current "Institutions"]]
    [:ul
-    (for [id (->> institutions (map :id) (sort))]
+    (for [id (->> institutions (map #(get % "id")) (sort))]
       [:li [:a {:href (url-encode id)} (escape-html id)]])]
    [:div.actions
     [:a {:href :new, :class "button"} "New institution"]]])
 
 (defn- detail-page
   "Institution detail hiccup."
-  [{:keys [orig-id] :as institution} & {:keys [dirty]}]
+  [{:strs [orig-id] :as institution} & {:keys [dirty]}]
   [:div.detail
    (into
     [:nav
@@ -296,25 +296,25 @@
 
 (defn- create-or-update
   "Handle create or update request."
-  [{:keys                            [params ::state/institutions]
-    {:keys [id orig-id
-            add-header select-auth]} :params
-    :as                              req}]
+  [{:keys                               [params ::state/institutions]
+    {:keys [orig-id]}                   :params
+    {:strs [id add-header select-auth]} :params
+    :as                                 req}]
   (let [subtitle         (subtitle orig-id)
         errors           (form-errors params)
         delete-header-fn (delete-header-fn-from-params params)]
     (cond
       add-header
       (-> params
-          (update :header-names conj "")
-          (update :header-values conj "")
+          (update "header-names" conj "")
+          (update "header-values" conj "")
           (detail-page :dirty true)
           (layout req subtitle))
 
       delete-header-fn
       (-> params
-          (update :header-names delete-header-fn)
-          (update :header-values delete-header-fn)
+          (update "header-names" delete-header-fn)
+          (update "header-values" delete-header-fn)
           (detail-page :dirty true)
           (layout req subtitle))
 
@@ -330,7 +330,7 @@
           (render req)
           (status http/not-acceptable))
 
-      (and (not= id orig-id) (contains? institutions (keyword id)))
+      (and (not= id orig-id) (contains? institutions id))
       (-> params
           (detail-page :dirty true)
           (layout (assoc req :flash (str "ID already taken; " id)) subtitle))
@@ -360,21 +360,21 @@
   (POST "/institutions/new" req
         (create-or-update req))
 
-  (GET "/institutions/:id" {:keys        [::state/institutions]
-                            {:keys [id]} :params
-                            :as          req}
-       (if-let [institution (get institutions (keyword id))]
+  (GET "/institutions/:orig-id" {:keys             [::state/institutions]
+                                 {:keys [orig-id]} :params
+                                 :as               req}
+       (if-let [institution (get institutions orig-id)]
          (-> institution
-             (->form id)
+             (->form orig-id)
              (detail-page)
-             (layout req (subtitle id)))
-         (not-found (str "Institution '" id "' not found..")
+             (layout req (subtitle orig-id)))
+         (not-found (str "Institution '" orig-id "' not found..")
                     req)))
 
   (POST "/institutions/:orig-id" {:keys             [::state/institutions]
                                   {:keys [orig-id]} :params
                                   :as               req}
-        (if (get institutions (keyword orig-id))
+        (if (get institutions orig-id)
           (create-or-update req)
           (not-found (str "Institution '" orig-id "' not found..")
                      req)))
@@ -382,7 +382,7 @@
   (DELETE "/institutions/:id" {:keys        [::state/institutions]
                                {:keys [id]} :params
                                :as          req}
-          (if (get institutions (keyword id))
+          (if (get institutions id)
             (-> "."
                 (redirect :see-other)
                 (assoc ::state/command [::state/delete-institution id])

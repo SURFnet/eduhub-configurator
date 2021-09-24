@@ -27,68 +27,70 @@
 (defn- subtitle [context id] (str "'" id "' " (name context) " ACL"))
 
 (defn- ->form
+  "From access-control-list to form params."
   [access-control-list id]
-  {:id                  (name id)
-   :access-control-list (zipmap (keys access-control-list)
-                                (->> access-control-list vals (map set)))})
+  {"id"                  (name id)
+   "access-control-list" (reduce-kv (fn [m k v] (assoc m k (set v)))
+                                    {}
+                                    access-control-list)})
 
 (defn- form->
   "From params into an access-control-list.  Ensure all members are
   represented."
-  [{:keys [access-control-list]} access-control-lists]
+  [{:strs [access-control-list]} access-control-lists]
   (reduce (fn [m member-id] (update m member-id set))
           access-control-list
-          (-> access-control-lists first val keys)))
+          ;; take first of all acls as a template for "all members"
+          (->> access-control-lists first val keys)))
 
-(defn- form [context {:keys [access-control-list]} api-paths]
-  (for [[member paths] (sort-by key access-control-list)]
-    (let [id (name member)]
-      [:div.member {:id (str "member-" id)}
-       [:h3 [:a {:href (str ({:application "/institutions/"
-                              :institution "/applications/"} context) id)}
-             (escape-html id)]]
-       [:div.secondary-actions
-        [:input {:type  "submit", :class "secondary"
-                 :name  (str "select-all-" id)
-                 :value "Select all"}]
-        " "
-        [:input {:type  "submit", :class "secondary"
-                 :name  (str "select-none-" id)
-                 :value "Select none"}]]
+(defn- form [context {:strs [access-control-list]} api-paths]
+  (for [[id paths] (sort-by key access-control-list)]
+    [:div.member {:id (str "member-" id)}
+     [:h3 [:a {:href (str ({:application "/institutions/"
+                            :institution "/applications/"} context) id)}
+           (escape-html id)]]
+     [:div.secondary-actions
+      [:input {:type  "submit", :class "secondary"
+               :name  (str "select-all-" id)
+               :value "Select all"}]
+      " "
+      [:input {:type  "submit", :class "secondary"
+               :name  (str "select-none-" id)
+               :value "Select none"}]]
 
-       (for [path (sort paths)]
-         [:label.path
-          [:input {:type    "checkbox"
-                   :name    (str "access-control-list[" id "][]")
-                   :value   path
-                   :checked (contains? paths path)}]
-          (escape-html path)])
+     (for [path (sort paths)]
+       [:label.path
+        [:input {:type    "checkbox"
+                 :name    (str "access-control-list[" id "][]")
+                 :value   path
+                 :checked true}]
+        (escape-html path)])
 
-       (when-let [unselected-paths (-> api-paths (set/difference paths) (sort) (seq))]
-         [:div.unselected
-          [:button {:id      (str "ut-" id)
-                    :type    "button", :class "secondary"
-                    :style   "display:none"
-                    ;; note: id will not contain characters which need quoting
-                    :onclick (str "document.getElementById('ut-" id "').style.display = 'none';"
-                                  "document.getElementById('up-" id "').style.display = 'inherit';")}
-           "More.."]
-          [:div.paths {:id (str "up-" id)}
-           (for [path unselected-paths]
-             [:label.path
-              [:input {:type    "checkbox"
-                       :name    (str "access-control-list[" id "][]")
-                       :value   path
-                       :checked (contains? paths path)}]
-              (escape-html path)])]
-          (javascript-tag
-           ;; note: id will not contain characters which need quoting
-           (str "document.getElementById('ut-" id "').style.display = 'inherit';"
-                "document.getElementById('up-" id "').style.display = 'none';"))])])))
+     (when-let [unselected-paths (-> api-paths (set/difference paths) (sort) (seq))]
+       [:div.unselected
+        [:button {:id      (str "ut-" id)
+                  :type    "button", :class "secondary"
+                  :style   "display:none"
+                  ;; note: id will not contain characters which need quoting
+                  :onclick (str "document.getElementById('ut-" id "').style.display = 'none';"
+                                "document.getElementById('up-" id "').style.display = 'inherit';")}
+         "More.."]
+        [:div.paths {:id (str "up-" id)}
+         (for [path unselected-paths]
+           [:label.path
+            [:input {:type    "checkbox"
+                     :name    (str "access-control-list[" id "][]")
+                     :value   path
+                     :checked false}]
+            (escape-html path)])]
+        (javascript-tag
+         ;; note: id will not contain characters which need quoting
+         (str "document.getElementById('ut-" id "').style.display = 'inherit';"
+              "document.getElementById('up-" id "').style.display = 'none';"))])]))
 
 (defn- detail-page
   "Access control list detail hiccup."
-  [{:keys [id] :as access-control-list} context api-paths & {:keys [scroll-to dirty]}]
+  [{:strs [id] :as access-control-list} context api-paths & {:keys [scroll-to dirty]}]
   [:div.detail
    [:nav
     [:a {:href "/"} "⌂"]
@@ -124,27 +126,27 @@
     {:keys [id]} :params
     :as          req}
    access-control-lists]
-  (let [select-all          (->> params
+  (let [select-all          (->> (dissoc params :id)
                                  keys
-                                 (keep #(last (re-find #"select-all-(.*)" (name %))))
+                                 (keep #(last (re-find #"select-all-(.*)" %)))
                                  first)
-        select-none         (->> params
+        select-none         (->> (dissoc params :id)
                                  keys
-                                 (keep #(last (re-find #"select-none-(.*)" (name %))))
+                                 (keep #(last (re-find #"select-none-(.*)" %)))
                                  first)
         access-control-list (form-> params access-control-lists)]
     (cond
       select-all
       (-> access-control-list
           (->form id)
-          (assoc-in [:access-control-list (keyword select-all)] api-paths)
+          (assoc-in ["access-control-list" select-all] api-paths)
           (detail-page context api-paths :scroll-to (str "member-" select-all) :dirty true)
           (layout req (subtitle context id)))
 
       select-none
       (-> access-control-list
           (->form id)
-          (assoc-in [:access-control-list (keyword select-none)] #{})
+          (assoc-in ["access-control-list" select-none] #{})
           (detail-page context api-paths :scroll-to (str "member-" select-none) :dirty true)
           (layout req (subtitle context id)))
 
@@ -163,7 +165,7 @@
                                                               ::state/api-paths]
                                                 {:keys [id]} :params
                                                 :as          req}
-       (if-let [access-control-list (get access-control-lists (keyword id))]
+       (if-let [access-control-list (get access-control-lists id)]
          (-> access-control-list
              (->form id)
              (detail-page context api-paths)
@@ -174,7 +176,7 @@
   (POST "/applications/:id/access-control-list" {:keys        [::state/access-control-lists]
                                                  {:keys [id]} :params
                                                  :as          req}
-        (if (get access-control-lists (keyword id))
+        (if (get access-control-lists id)
           (do-update req access-control-lists)
           (not-found (str "Application '" id "' not found..")
                      req))))
@@ -186,7 +188,7 @@
                                                 {:keys [id]} :params
                                                 :as          req}
        (let [access-control-lists (state/invert-access-control-lists access-control-lists)]
-         (if-let [access-control-list (get access-control-lists (keyword id))]
+         (if-let [access-control-list (get access-control-lists id)]
            (-> access-control-list
                (->form id)
                (detail-page context api-paths)
@@ -198,7 +200,7 @@
                                                  {:keys [id]} :params
                                                  :as          req}
         (let [access-control-lists (state/invert-access-control-lists access-control-lists)]
-          (if (get access-control-lists (keyword id))
+          (if (get access-control-lists id)
             (do-update req access-control-lists)
             (not-found (str "Institution '" id "' not found..")
                        req)))))

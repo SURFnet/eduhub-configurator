@@ -37,7 +37,9 @@
   (-> handler
       (store/wrap {:gateway-config-yaml (.getPath gateway-config-file)
                    :pipeline            "test"})
-      (wrap-defaults (dissoc site-defaults :security))))
+      (wrap-defaults (-> site-defaults
+                         (assoc-in [:params :keywordize] false)
+                         (dissoc :security)))))
 
 (def ^:dynamic *config*)
 
@@ -55,35 +57,35 @@
                 ::state/institutions
                 ::state/access-control-lists]} (#'store/fetch *config*)]
     (testing "applications"
-      (is (contains? applications :fred))
-      (is (contains? applications :barney))
-      (is (contains? applications :bubbles)))
+      (is (contains? applications "fred"))
+      (is (contains? applications "barney"))
+      (is (contains? applications "bubbles")))
 
     (testing "institutions"
-      (is (contains? institutions :BasicAuthBackend))
-      (is (contains? institutions :Oauth2Backend))
-      (is (contains? institutions :ApiKeyBackend))
+      (is (contains? institutions "Basic.Auth.Backend"))
+      (is (contains? institutions "Oauth-2.Backend"))
+      (is (contains? institutions "Api.Key.Backend"))
 
       (testing "shape"
         (is (= {:url          "https://example.com/test-backend"
                 :proxyOptions {:auth "fred:wilma"}}
-               (:BasicAuthBackend institutions)))))
+               (get institutions "Basic.Auth.Backend")))))
 
     (testing "access-control-lists"
-      (is (contains? access-control-lists :fred))
-      (is (contains? access-control-lists :barney))
-      (is (contains? access-control-lists :bubbles))
+      (is (contains? access-control-lists "fred"))
+      (is (contains? access-control-lists "barney"))
+      (is (contains? access-control-lists "bubbles"))
 
       (testing "shape"
-        (is (= {:BasicAuthBackend nil
-                :Oauth2Backend    nil
-                :ApiKeyBackend    #{"/"}}
-               (:bubbles access-control-lists)))))))
+        (is (= {"Basic.Auth.Backend" nil
+                "Oauth-2.Backend"    nil
+                "Api.Key.Backend"    #{"/"}}
+               (get access-control-lists "bubbles")))))))
 
 (deftest put
-  (let [state {::state/applications         {:fred {:passwordHash "..", :passwordSalt ".."}}
-               ::state/institutions         {:backend {:url "http://example.com/put-test"}}
-               ::state/access-control-lists {:fred {:backend #{"/"}}}}]
+  (let [state {::state/applications         {"fred" {:passwordHash "..", :passwordSalt ".."}}
+               ::state/institutions         {"backend" {:url "http://example.com/put-test"}}
+               ::state/access-control-lists {"fred" {"backend" #{"/"}}}}]
     (testing "round trip"
       (#'store/put state *config*)
       (#'store/commit! *config*)

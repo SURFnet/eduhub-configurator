@@ -45,14 +45,16 @@
   (-> (str pass "-" salt) digest/sha256 hex))
 
 (defn- ->form
-  [{:keys [passwordSalt passwordHash]} id]
-  {:id            (name id)
-   :orig-id       (name id)
-   :password-salt passwordSalt
-   :password-hash passwordHash})
+  "Application to form."
+  [{:strs [passwordSalt passwordHash]} id]
+  {"id"            (name id)
+   "orig-id"       (name id)
+   "password-salt" passwordSalt
+   "password-hash" passwordHash})
 
 (defn- form->
-  [{:keys [id password]}]
+  "Form to application."
+  [{:strs [id password]}]
   (into {:id id}
         (when password
           (let [salt (generate-random-string)]
@@ -63,7 +65,7 @@
 (def id-pattern-message "only a-z, A-Z, 0-9, _, : and - characters allowed")
 
 (defn- form-errors
-  [{:keys [id password]}]
+  [{:strs [id password]}]
   (cond-> []
     (s/blank? id)
     (conj "ID can not be blank")
@@ -79,7 +81,8 @@
 
     :finally seq))
 
-(defn- form [{:keys [id orig-id reset-password]}]
+(defn- form [{:keys [orig-id]
+              :strs [id reset-password]}]
   (let [show-password (or (not orig-id) reset-password)]
     [[:div.field
       [:label {:for "id"} "ID "
@@ -107,14 +110,14 @@
     " / "
     [:a.current "Applications"]]
    [:ul
-    (for [id (->> applications (map :id) (sort))]
+    (for [id (->> applications (map #(get % "id")) (sort))]
       [:li [:a {:href (url-encode id)} (escape-html id)]])]
    [:div.actions
     [:a {:href :new, :class "button"} "New application"]]])
 
 (defn- detail-page
   "Application detail hiccup."
-  [{:keys [orig-id] :as application} & {:keys [dirty]}]
+  [{:strs [orig-id] :as application} & {:strs [dirty]}]
   [:div.detail
    (into
     [:nav
@@ -160,10 +163,10 @@
 
 (defn- create-or-update
   "Handle create or update request."
-  [{:keys                    [params ::state/applications]
-    {:keys [id orig-id
-            reset-password]} :params
-    :as                      req}]
+  [{:keys                       [params ::state/applications]
+    {:keys [orig-id]}           :params
+    {:strs [id reset-password]} :params
+    :as                         req}]
   (let [subtitle (subtitle orig-id)
         errors   (form-errors params)]
     (cond
@@ -180,7 +183,7 @@
           (render req)
           (status http/not-acceptable))
 
-      (and (not= id orig-id) (contains? applications (keyword id)))
+      (and (not= id orig-id) (contains? applications id))
       (-> params
           (detail-page :dirty true)
           (layout (assoc req :flash (str "ID already taken; " id)) subtitle))
@@ -208,21 +211,21 @@
   (POST "/applications/new" req
         (create-or-update req))
 
-  (GET "/applications/:id" {:keys        [::state/applications]
-                            {:keys [id]} :params
-                            :as          req}
-       (if-let [application (get applications (keyword id))]
+  (GET "/applications/:orig-id" {:keys             [::state/applications]
+                                 {:keys [orig-id]} :params
+                                 :as               req}
+       (if-let [application (get applications orig-id)]
          (-> application
-             (->form id)
+             (->form orig-id)
              (detail-page)
-             (layout req (subtitle id)))
-         (not-found (str "Application '" id "' not found..")
+             (layout req (subtitle orig-id)))
+         (not-found (str "Application '" orig-id "' not found..")
                     req)))
 
   (POST "/applications/:orig-id" {:keys             [::state/applications]
                                   {:keys [orig-id]} :params
                                   :as               req}
-        (if (get applications (keyword orig-id))
+        (if (get applications orig-id)
           (create-or-update req)
           (not-found (str "Application '" orig-id "' not found..")
                      req)))
@@ -230,7 +233,7 @@
   (DELETE "/applications/:id" {:keys        [::state/applications]
                                {:keys [id]} :params
                                :as          req}
-          (if (get applications (keyword id))
+          (if (get applications id)
             (-> "."
                 (redirect :see-other)
                 (assoc ::state/command [::state/delete-application id])

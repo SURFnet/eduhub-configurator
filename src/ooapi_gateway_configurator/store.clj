@@ -37,22 +37,22 @@
 
     - app: fred
       endpoints:
-        - endpoint: BasicAuthBackend
+        - endpoint: Basic.Auth.Backend
           paths: ['/', '/courses', '/courses/:id']
 
   The shape of the output (in EDN):
 
-    {:BasicAuthBackend #{'/', '/courses', '/courses/:id'}
-     :ApiKeyBackend    nil
+    {\"Basic.Auth.Backend\"  #{\"/\", \"/courses\", \"/courses/:id\"}
+     \"Api.Key.Backend\"     nil
      ..}
   "
   [application-id acls institution-ids]
   (let [endps (->> acls
-                   (filter #(= application-id (keyword (:app %))))
+                   (filter #(= application-id (:app %)))
                    first
                    :endpoints
                    (reduce (fn [m {:keys [endpoint paths]}]
-                             (assoc m (keyword endpoint) (set paths)))
+                             (assoc m (name endpoint) (set paths)))
                            {}))]
     (reduce (fn [m id] (assoc m id (get endps id)))
             {}
@@ -67,6 +67,11 @@
           {}
           app-ids))
 
+(defn- str-map-keys [m]
+  (reduce (fn [m [k v]] (assoc m (name k) v))
+          {}
+          m))
+
 (defn- fetch
   [{:keys [gateway-config-yaml work-dir pipeline]}]
   (let [{{:keys [serviceEndpoints pipelines]
@@ -75,15 +80,18 @@
          :as             checkout}      (checkout-yaml gateway-config-yaml {:work-dir work-dir})
         {:keys [policies apiEndpoints]} (get pipelines (keyword pipeline))
         api                             (-> apiEndpoints first keyword)
-        apps                            (klist/get-in policies [:gatekeeper :action :apps])]
+        apps                            (-> policies
+                                            (klist/get-in [:gatekeeper :action :apps])
+                                            str-map-keys)
+        institutions                    (str-map-keys serviceEndpoints)]
     {::state/applications         apps
-     ::state/institutions         serviceEndpoints
+     ::state/institutions         institutions
      ::uncommitted?               (versioning/uncommitted? checkout)
      ::versions                   (versioning/versions gateway-config-yaml {:work-dir work-dir})
      ::current-version            current-version
      ::state/access-control-lists (-> policies
                                       (klist/get-in [:gatekeeper :action :acls])
-                                      (gatekeeper-acls->acls (keys apps) (keys serviceEndpoints)))
+                                      (gatekeeper-acls->acls (keys apps) (keys institutions)))
      ::state/api-paths            (-> gw :apiEndpoints api :paths set)}))
 
 (defn- acls->gatekeeper-acls
@@ -183,28 +191,28 @@
 (defn wrap
   "Middleware to allow reading and writing configuration."
   [app {:keys [gateway-config-yaml work-dir] :as config}]
-  (fn [{:keys [request-method uri params] :as req}]
+  (fn [{:keys                                            [request-method uri]
+        {:strs [commit reset timestamp current-version]} :params
+        :as                                              req}]
     (if (and (= :post request-method)
              (= "/versioning" uri))
       (merge
        (response/redirect "/" :see-other)
        (cond
-         (:commit params)
+         commit
          (do (versioning/commit! gateway-config-yaml {:work-dir work-dir})
              {:flash "Deployed changes"})
 
-         (and (:reset params) (or (= "current" (:timestamp params))
-                                  (nil? (:timestamp params))))
+         (and reset (or (= "current" timestamp) (nil? timestamp)))
          (do (versioning/unstage! gateway-config-yaml {:work-dir work-dir})
              {:flash "Discarded changes — reset to currently deployed version."})
 
-         (and (:reset params) (:timestamp params))
-         (let [timestamp (-> params
-                             :timestamp
+         (and reset timestamp)
+         (let [timestamp (-> timestamp
                              Long/parseLong
                              java.time.Instant/ofEpochMilli)]
            (if (versioning/reset! gateway-config-yaml
-                                  (:current-version params)
+                                  current-version
                                   timestamp
                                   {:work-dir work-dir})
              {:flash (str "Discarded changes — reset to version of " (html-time/human-time timestamp))}

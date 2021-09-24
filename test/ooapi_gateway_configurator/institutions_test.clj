@@ -45,42 +45,42 @@
     (let [res (do-get "/institutions/")]
       (is (= http/ok (:status res))
           "OK")
-      (is (re-find #"BasicAuthBackend" (:body res))
-          "lists BasicAuthBackend"))))
+      (is (re-find #"Basic.Auth.Backend" (:body res))
+          "lists Basic.Auth.Backend"))))
 
 (deftest detail-page
-  (testing "GET /institutions/BasicAuthBackend"
+  (testing "GET /institutions/Basic.Auth.Backend"
     (is (= http/not-found (:status (do-get "/institutions/DoesNotExist")))
         "Not Found")
-    (let [res (do-get "/institutions/BasicAuthBackend")]
+    (let [res (do-get "/institutions/Basic.Auth.Backend")]
       (is (= http/ok (:status res))
           "OK")
       (is (re-find #"Edit Institution" (:body res))
           "includes header")
-      (is (re-find #"BasicAuthBackend" (:body res))
+      (is (re-find #"Basic.Auth.Backend" (:body res))
           "includes institution ID")
       (is (re-find #"https://example.com/test-backend" (:body res))
           "include institution URL"))))
 
 (deftest delete-institution
-  (testing "DELETE /institutions/BasicAuthBackend"
+  (testing "DELETE /institutions/Basic.Auth.Backend"
     (is (= http/not-found (:status (do-delete "/institutions/DoesNotExist")))
         "Not Found")
-    (let [res (do-delete "/institutions/BasicAuthBackend")]
+    (let [res (do-delete "/institutions/Basic.Auth.Backend")]
       (is (= http/see-other (:status res))
           "see other")
       (is (= "http://localhost/institutions/" (-> res :headers (get "Location")))
           "redirected back to institutions list")
       (is (:flash res)
           "has a message about deletion")
-      (is (= [::state/delete-institution "BasicAuthBackend"] (-> res ::state/command))
-          "has delete-application command for BasicAuthBackend"))))
+      (is (= [::state/delete-institution "Basic.Auth.Backend"] (-> res ::state/command))
+          "has delete-application command for Basic.Auth.Backend"))))
 
 (deftest update-institution
-  (testing "POST /institutions/BasicAuthBackend"
+  (testing "POST /institutions/Basic.Auth.Backend"
     (is (= http/not-found (:status (do-post "/institutions/DoesNotExist")))
         "Not Found")
-    (let [res (do-post "/institutions/BasicAuthBackend"
+    (let [res (do-post "/institutions/Basic.Auth.Backend"
                        {:id              "test"
                         :url             "https://example.com/test"
                         :auth            "basic"
@@ -94,16 +94,16 @@
           "redirected back to institutions list")
       (is (:flash res)
           "has a message about update")
-      (is (= [::state/update-institution "BasicAuthBackend"
-              {:id  "test",
-               :url "https://example.com/test",
-               :proxyOptions {:auth "fred:betty"
+      (is (= [::state/update-institution "Basic.Auth.Backend"
+              {:id           "test",
+               :url          "https://example.com/test",
+               :proxyOptions {:auth    "fred:betty"
                               :headers {"X-test" "1", "X-other" "2"}}}]
              (-> res ::state/command))
-          "has update-institution command for BasicAuthBackend")))
+          "has update-institution command for Basic.Auth.Backend")))
 
   (testing "errors"
-    (let [res (do-post "/institutions/BasicAuthBackend"
+    (let [res (do-post "/institutions/Basic.Auth.Backend"
                        {:id  "test"
                         :url "bad"})]
       (is (= http/not-acceptable (:status res))
@@ -112,22 +112,22 @@
           "includes error message")))
 
   (testing "add header"
-    (let [res (do-post "/institutions/BasicAuthBackend"
-                       {:id         "test"
-                        :url        "https://example.com/test"
-                        :add-header ".."})]
+    (let [res (do-post "/institutions/Basic.Auth.Backend"
+                       {"id"         "test"
+                        "url"        "https://example.com/test"
+                        "add-header" ".."})]
       (is (= http/ok (:status res))
           "OK")
       (is (re-find #"<li [^>]*?class=\"header\"" (:body res))
           "has header input")))
 
   (testing "delete header"
-    (let [res (do-post "/institutions/BasicAuthBackend"
-                       {:id              "test"
-                        :url             "https://example.com/test"
-                        :header-names    ["First" "Second"]
-                        :header-values   ["1" "2"]
-                        :delete-header-0 ".."})]
+    (let [res (do-post "/institutions/Basic.Auth.Backend"
+                       {"id"              "test"
+                        "url"             "https://example.com/test"
+                        "header-names"    ["First" "Second"]
+                        "header-values"   ["1" "2"]
+                        "delete-header-0" ".."})]
       (is (= http/ok (:status res))
           "OK")
       (is (= 1 (count (re-seq #"<li [^>]*?class=\"header\"" (:body res))))
@@ -139,20 +139,20 @@
             "has header-name input"))))
 
   (testing "select-auth"
-    (let [res (do-post "/institutions/BasicAuthBackend"
-                       {:id          "test"
-                        :url         "https://example.com/test"
-                        :auth        "basic"
-                        :select-auth ".."})]
+    (let [res (do-post "/institutions/Basic.Auth.Backend"
+                       {"id"          "test"
+                        "url"         "https://example.com/test"
+                        "auth"        "basic"
+                        "select-auth" ".."})]
       (is (= http/ok (:status res))
           "OK")
       (is (re-find #"<input.*?name=\"basic-auth-user\"" (:body res))
           "has basic auth input"))
-    (let [res (do-post "/institutions/BasicAuthBackend"
-                       {:id          "test"
-                        :url         "https://example.com/test"
-                        :auth        "oauth"
-                        :select-auth ".."})]
+    (let [res (do-post "/institutions/Basic.Auth.Backend"
+                       {"id"          "test"
+                        "url"         "https://example.com/test"
+                        "auth"        "oauth"
+                        "select-auth" ".."})]
       (is (= http/ok (:status res))
           "OK")
       (is (re-find #"<input.*?name=\"oauth-url\"" (:body res))
@@ -168,12 +168,12 @@
 
   (testing "POST /institutions/new"
     (let [res (do-post "/institutions/new"
-                       {:id                  "test"
-                        :url                 "https://example.com/test"
-                        :auth                "oauth"
-                        :oauth-url           "https://oauth/test"
-                        :oauth-client-id     "fred"
-                        :oauth-client-secret "wilma"})]
+                       {"id"                  "test"
+                        "url"                 "https://example.com/test"
+                        "auth"                "oauth"
+                        "oauth-url"           "https://oauth/test"
+                        "oauth-client-id"     "fred"
+                        "oauth-client-secret" "wilma"})]
       (is (= http/see-other (:status res))
           "see other")
       (is (= "http://localhost/institutions/" (-> res :headers (get "Location")))
@@ -182,31 +182,31 @@
           "has a message about creation")
       (is (= ::state/create-institution (-> res ::state/command first))
           "has create-institution command")
-      (is (= {:id                  "test"
-              :url                 "https://example.com/test"
+      (is (= {:id           "test"
+              :url          "https://example.com/test"
               :proxyOptions {:oauth2
                              {:clientCredentials
                               {:tokenEndpoint
                                {:url "https://oauth/test",
                                 :params
-                                {:grant_type "client_credentials",
-                                 :client_id "fred",
+                                {:grant_type    "client_credentials",
+                                 :client_id     "fred",
                                  :client_secret "wilma"}}}}}}
              (-> res ::state/command last))))))
 
 (def test-institutions
-  {:BasicAuthBackend {:id           "BasicAuthBackend"
-                      :url          "https://example.com/test-backend"
-                      :proxyOptions {:auth "fred:wilma"}}
-   :Oauth2Backend    {:id           "Oauth2Backend"
-                      :url          "https://example.com/other-test-backend"
-                      :proxyOptions {:oauth2 {:clientCredentials {:tokenEndpoint {:url    "http://localhost:8084/mock/token"
-                                                                                  :params {:grant_type    "client_credentials"
-                                                                                           :client_id     "fred"
-                                                                                           :client_secret "wilma"}}}}}}
-   :ApiKeyBackend    {:id           "ApiKeyBackend"
-                      :url          "https://example.com/api-key-backend"
-                      :proxyOptions {:headers {:Authorization "Bearer test-api-key"}}}})
+  {"Basic.Auth.Backend" {:id           "Basic.Auth.Backend"
+                         :url          "https://example.com/test-backend"
+                         :proxyOptions {:auth "fred:wilma"}}
+   "Oauth-2.Backend"    {:id           "Oauth-2.Backend"
+                         :url          "https://example.com/other-test-backend"
+                         :proxyOptions {:oauth2 {:clientCredentials {:tokenEndpoint {:url    "http://localhost:8084/mock/token"
+                                                                                     :params {:grant_type    "client_credentials"
+                                                                                              :client_id     "fred"
+                                                                                              :client_secret "wilma"}}}}}}
+   "Api.Key.Backend"    {:id           "Api.Key.Backend"
+                         :url          "https://example.com/api-key-backend"
+                         :proxyOptions {:headers {:Authorization "Bearer test-api-key"}}}})
 
 (deftest ->form->
   (testing "->form and form-> round trip")

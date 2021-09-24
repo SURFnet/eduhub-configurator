@@ -22,7 +22,9 @@
 
 (def ^:dynamic *app*)
 
-(def app (-> (web/mk-handler {:auth {:group-ids #{"my-group"}}}) (wrap-defaults site-defaults)))
+(def app (-> {:auth {:group-ids #{"my-group"}}}
+             (web/mk-handler)
+             (wrap-defaults (assoc-in site-defaults [:params :keywordize] false))))
 
 (defn do-get [uri]
   (app (-> (request :get uri)

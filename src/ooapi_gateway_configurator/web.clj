@@ -64,4 +64,5 @@
 
       (wrap-defaults (-> config
                          (get :site-defaults site-defaults)
+                         (assoc-in [:params :keywordize] false)
                          (assoc-in [:session :cookie-attrs :same-site] :lax)))))

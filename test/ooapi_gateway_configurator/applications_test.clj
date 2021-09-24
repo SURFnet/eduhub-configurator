@@ -80,7 +80,7 @@
     (is (= http/not-found (:status (do-post "/applications/DoesNotExist")))
         "Not Found")
     (let [res (do-post "/applications/fred"
-                       {:id "betty"})]
+                       {"id" "betty"})]
       (is (= http/see-other (:status res))
           "see other")
       (is (= "http://localhost/applications/"
@@ -94,7 +94,7 @@
 
   (testing "errors"
     (let [res (do-post "/applications/fred"
-                       {:id ""})]
+                       {"id" ""})]
       (is (= http/not-acceptable (:status res))
           "not acceptable")
       (is (re-find #"flash" (:body res))
@@ -102,8 +102,8 @@
 
   (testing "reset password"
     (let [res (do-post "/applications/fred"
-                       {:id             "fred"
-                        :reset-password ".."})]
+                       {"id"             "fred"
+                        "reset-password" ".."})]
       (is (= http/ok (:status res))
           "OK")
       (is (re-find #"<input [^>]*?name=\"password\"" (:body res))
@@ -119,8 +119,8 @@
 
   (testing "POST /applications/new"
     (let [res (do-post "/applications/new"
-                       {:id       "test"
-                        :password "0123456789abcdef0123456789abcdef"})]
+                       {"id"       "test"
+                        "password" "0123456789abcdef0123456789abcdef"})]
       (is (= http/see-other (:status res))
           "see other")
       (is (= "http://localhost/applications/" (-> res :headers (get "Location")))

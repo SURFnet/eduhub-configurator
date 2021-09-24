@@ -54,7 +54,7 @@
                                  :client-id        client-id
                                  :client-secret    client-secret
                                  :redirect-uri     "/oauth2/conext/callback"})
-      (wrap-defaults site-defaults)))
+      (wrap-defaults (assoc-in site-defaults [:params :keywordize] false))))
 
 (defn- mk-client
   "Return a stateful http client (with a cookie store)"
