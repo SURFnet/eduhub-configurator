@@ -95,6 +95,10 @@ nav a.current {
     font-weight: bold;
 }
 
+section {
+    margin: 1rem 0;
+}
+
 .flash, .warning {
     border: solid #f80 .2em;
     background: #fea;
@@ -282,4 +286,26 @@ label.path, label.version {
 }
 .commit-status fieldset.uncommitted legend {
     background: #fea;
+}
+
+/* hack to make a square box */
+#network-box {
+    position: relative;
+    width: 100%;
+}
+#network-box:before{
+    content: "";
+    display: block;
+    padding-top: 100%;
+}
+#network-content {
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
+}
+.help {
+    font-size: smaller;
+    font-style: italic;
 }

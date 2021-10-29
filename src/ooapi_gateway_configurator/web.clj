@@ -24,6 +24,7 @@
             [ooapi-gateway-configurator.institutions :as institutions]
             [ooapi-gateway-configurator.state :as state]
             [ooapi-gateway-configurator.store :as store]
+            [ooapi-gateway-configurator.network :as network]
             [ring.middleware.defaults :refer [site-defaults wrap-defaults]]))
 
 (defn main-page
@@ -35,7 +36,9 @@
     [:li [:a {:href "applications/"}
           "Applications"]]
     [:li [:a {:href "institutions/"}
-          "Institutions"]]]
+          "Institutions"]]
+    [:li [:a {:href "network/"}
+          "Network"]]]
    (store/commit-component req)])
 
 (defn mk-handler
@@ -45,7 +48,8 @@
     (routes (GET "/" req (layout (main-page req) req))
             applications/handler
             institutions/handler
-            access-control-lists/handler)
+            access-control-lists/handler
+            network/handler)
     auth/wrap-member-of (get-in config [:auth :group-ids]))
    auth/logout-handler
    (resources "/" {:root "public"})
