@@ -149,7 +149,7 @@
   If the stage succeeds, returns `true`. If a conflict is detected,
   discards the contents and returns `nil`."
   ([source-path previous-version contents opts]
-   {:pre [(string? source-path)
+   {:pre [(io/as-file source-path)
           (string? previous-version)
           (string? contents)]}
    (locking monitor

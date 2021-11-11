@@ -19,97 +19,62 @@
             [clojure.string :as string]
             [clojure.tools.logging :as log]
             [environ.core :as environ]
+            [nl.jomco.envopts :as envopts]
             [ooapi-gateway-configurator.web :as web]
             [ring.adapter.jetty :refer [run-jetty]]))
 
-(def default-env
-  "Settings that can be changed from the environment or java
-  properties. Values are all strings or nil (unset)."
-  {:http-host "localhost"
-   :http-port "8080"
+(def opt-specs
+  {:http-host ["canonical hostname for webserver" :str
+               :default "localhost" :in [:jetty :host]]
+   :http-port ["http port for webserver" :int
+               :default 8080 :in [:jetty :port]]
 
-   :auth-authorize-uri    nil
-   :auth-access-token-uri nil
-   :auth-client-id        nil
-   :auth-client-secret    nil
-   :auth-user-info-uri    nil
-   :auth-redirect-uri     "/oauth2/conext/callback"
+   :auth-authorize-uri    ["OAUTH authorization URI" :http
+                           :in [:auth :authorize-uri]]
+   :auth-access-token-uri ["OAUTH access token URI" :http
+                           :in [:auth :access-token-uri]]
+   :auth-client-id        ["OAUTH Client ID" :str
+                           :in [:auth :client-id]]
+   :auth-client-secret    ["OAUTH Client secret" :str
+                           :in [:auth :client-secret]]
+   :auth-user-info-uri    ["OAUTH User-Info URI" :http
+                           :in [:auth :user-info-uri]]
+   :auth-redirect-uri     ["OAUTH Redirect URI" :http
+                           :default (java.net.URI/create "http://localhost:8080/oauth2/conext/callback")
+                           :in [:auth :redirect-uri]]
+   :auth-conext-group-ids ["Conext group ids that are authorized for this application" ::set
+                           :in [:auth :group-ids]]
 
-   :gateway-config-yaml nil
-   :work-dir            nil
-   :pipeline            nil})
+   :gateway-config-yaml ["Path to gateway configuration file" ::file
+                         :existing? true :in [:store :gateway-config-yaml]]
+   :work-dir            ["Path to directory for workfiles and backups" :dir
+                         :existing? true :in [:store :work-dir]
+                         :default nil]
+   :pipeline            ["Name of the pipeline to configure in gateway configuration file" :str
+                         :in [:store :pipeline]]})
 
-(defn key-to-env
-  [k]
-  (-> k
-      name
-      string/upper-case
-      (string/replace #"-" "_")))
 
-(defn get-env
-  [env k & {:keys [required?] :as opts}]
-  (if-some [s (get env k (get default-env k))]
-    s
-    (when required?
-      (throw (ex-info (str "Required configuration option " (key-to-env k) " was not provided")
-                      {:key  k
-                       :opts opts})))))
+(defmethod envopts/parse ::set
+  [s opt-spec]
+  [(set (string/split s #"\w*,\w*"))])
 
-(defn get-str
-  [env k & opts]
-  (apply get-env env k opts))
+(defmethod envopts/parse ::file
+  [s {:keys [existing?]}]
+  (let [f (io/file s)]
+    (if (and existing? (not (.exists f)))
+      [nil (format "file '%s' does not exist" s)]
+      [f])))
 
-(defn get-set
-  [env k & opts]
-  (when-let [s (apply get-env env k opts)]
-    (set (string/split s #"\w*,\w*"))))
-
-(defn get-int
-  [env k & opts]
-  (when-let [s (apply get-env env k opts)]
-    (try
-      (Integer/parseInt s)
-      (catch NumberFormatException _
-        (throw (ex-info (str "Configuration option " (key-to-env k) " should be a valid integer")
-                        {:key k :value s}))))))
-
-(defn get-file
-  [env k & opts]
-  (let [{:keys [existing?]} (apply hash-map opts)
-        s                   (apply get-env env k opts)]
-    (when (and s
-               existing?
-               (not (.exists (io/file s))))
-      (throw (ex-info (str "Configuration option " (key-to-env k) " does not refer to an existing file")
-                      {:key k :value s})))
-    s))
-
-(defn get-dir
-  [env k & opts]
-  (let [{:keys [existing?]} (apply hash-map opts)
-        s                   (apply get-env env k opts)]
-    (when (and s
-               existing?
-               (not (.isDirectory (io/file s))))
-      (throw (ex-info (str "Configuration option " (key-to-env k) " does not refer to an existing directory")
-                      {:key k :value s})))
-    s))
+(defmethod envopts/parse ::dir
+  [s {:keys [existing?]}]
+  (let [d (io/file s)]
+    (when (and existing? (not (.isDirectory d)))
+      [nil (format "'%s' is not a directory")]
+      [d])))
 
 (defn mk-config
   [env]
-  {:jetty {:host  (get-str env :http-host)
-           :port  (get-int env :http-port)
-           :join? false}
-   :store {:gateway-config-yaml (get-file env :gateway-config-yaml :required? true :existing? true)
-           :work-dir            (get-dir env :work-dir :existing? true)
-           :pipeline            (get-str env :pipeline :required? true)}
-   :auth  {:authorize-uri    (get-str env :auth-authorize-uri :required? true)
-           :access-token-uri (get-str env :auth-access-token-uri :required? true)
-           :user-info-uri    (get-str env :auth-user-info-uri :required? true)
-           :client-id        (get-str env :auth-client-id :required? true)
-           :client-secret    (get-str env :auth-client-secret :required? true)
-           :group-ids        (get-set env :auth-conext-group-ids :required? true)
-           :redirect-uri     (get-str env :auth-redirect-uri)}})
+  (envopts/opts env opt-specs))
 
 (defonce server-atom (atom nil))
 
@@ -132,5 +97,8 @@
 
 (defn -main
   [& _]
-  (let [config (mk-config environ/env)]
+  (let [[config errs] (mk-config environ/env)]
+    (when errs
+      (println (envopts/errs-description errs))
+      (System/exit 1))
     (start! config)))
