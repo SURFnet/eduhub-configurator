@@ -2,3 +2,5 @@
 /target/
 /.lein-failures
 /.envrc
+/.clj-kondo/
+/.lsp/
