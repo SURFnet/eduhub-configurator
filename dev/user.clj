@@ -28,9 +28,8 @@
 (defn start!
   []
   (let [[config errs] (mk-dev-config)]
-    (if errs
-      errs
-      (core/start! (assoc-in config [:jetty :join?] false)))))
+    (or errs
+        (core/start! (assoc-in config [:jetty :join?] false)))))
 
 (defn stop!
   []

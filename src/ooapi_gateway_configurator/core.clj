@@ -55,7 +55,7 @@
 
 
 (defmethod envopts/parse ::set
-  [s opt-spec]
+  [s _]
   [(set (string/split s #"\w*,\w*"))])
 
 (defmethod envopts/parse ::file
@@ -69,7 +69,7 @@
   [s {:keys [existing?]}]
   (let [d (io/file s)]
     (when (and existing? (not (.isDirectory d)))
-      [nil (format "'%s' is not a directory")]
+      [nil (format "'%s' is not a directory" d)]
       [d])))
 
 (defn mk-config
