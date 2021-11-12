@@ -203,7 +203,7 @@
 (defn reset!
   "Stage an earlier backup of `source-path`."
   [source-path previous-version timestamp {:keys [work-dir] :as opts}]
-  {:pre [(string? source-path)
+  {:pre [source-path
          (string? previous-version)
          (or (int? timestamp) (inst? timestamp))]}
   (let [timestamp   (if (int? timestamp)
