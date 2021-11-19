@@ -48,7 +48,6 @@
   "Application to form."
   [{:strs [passwordSalt passwordHash]} id]
   {"id"            (name id)
-   "orig-id"       (name id)
    "password-salt" passwordSalt
    "password-hash" passwordHash})
 
@@ -81,8 +80,7 @@
 
     :finally seq))
 
-(defn- form [{:keys [orig-id]
-              :strs [id reset-password]}]
+(defn- form [{:strs [id reset-password]} orig-id]
   (let [show-password (or (not orig-id) reset-password)]
     [[:div.field
       [:label {:for "id"} "ID "
@@ -117,7 +115,7 @@
 
 (defn- detail-page
   "Application detail hiccup."
-  [{:strs [orig-id] :as application} & {:strs [dirty]}]
+  [application orig-id & {:strs [dirty]}]
   [:div.detail
    (into
     [:nav
@@ -140,7 +138,7 @@
     (cond-> {:method "post"}
       dirty (assoc :data-dirty "true"))
     [:input {:type "submit", :style "display: none"}] ;; ensure enter key submits
-    (into [:div] (form application))
+    (into [:div] (form application orig-id))
 
     [:div.actions
      [:button {:type "submit", :class "primary"} (if orig-id "Update" "Create")]
@@ -173,19 +171,19 @@
       reset-password
       (-> params
           (assoc :reset-password true)
-          (detail-page :dirty true)
+          (detail-page orig-id :dirty true)
           (layout req subtitle))
 
       errors
       (-> params
-          (detail-page :dirty true)
+          (detail-page orig-id :dirty true)
           (layout (assoc req :flash (str "Invalid input;\n" (s/join ",\n" errors))) subtitle)
           (render req)
           (status http/not-acceptable))
 
       (and (not= id orig-id) (contains? applications id))
       (-> params
-          (detail-page :dirty true)
+          (detail-page orig-id :dirty true)
           (layout (assoc req :flash (str "ID already taken; " id)) subtitle))
 
       :else
@@ -205,7 +203,7 @@
 
   (GET "/applications/new" req
        (-> {}
-           (detail-page)
+           (detail-page nil)
            (layout req (subtitle nil))))
 
   (POST "/applications/new" req
@@ -217,7 +215,7 @@
        (if-let [application (get applications orig-id)]
          (-> application
              (->form orig-id)
-             (detail-page)
+             (detail-page orig-id)
              (layout req (subtitle orig-id)))
          (not-found (str "Application '" orig-id "' not found..")
                     req)))

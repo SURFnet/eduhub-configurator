@@ -57,7 +57,9 @@
       (is (re-find #"Edit Application" (:body res))
           "includes header")
       (is (re-find #"fred" (:body res))
-          "includes application ID"))))
+          "includes application ID")
+      (is (re-find #"<input[^>]*value=\"Reset password\"" (:body res))
+          "has reset password button"))))
 
 (deftest delete-application
   (testing "POST /applications/fred"
@@ -115,7 +117,9 @@
       (is (= http/ok (:status res))
           "OK")
       (is (re-find #"Create Application" (:body res))
-          "includes header")))
+          "includes header")
+      (is (re-find #"<input[^>]*name=\"password\"" (:body res))
+          "include password")))
 
   (testing "POST /applications/new"
     (let [res (do-post "/applications/new"

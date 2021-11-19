@@ -76,6 +76,75 @@
       (is (= [::state/delete-institution "Basic.Auth.Backend"] (-> res ::state/command))
           "has delete-application command for Basic.Auth.Backend"))))
 
+(defn- testing-errors
+  [path & fns]
+  (testing "errors"
+    (let [res (do-post path
+                       {:id  "test"
+                        :url "bad"})]
+      (is (= http/not-acceptable (:status res))
+          "not acceptable")
+      (is (re-find #"flash" (:body res))
+          "includes error message")
+      (doseq [f fns] (f res)))))
+
+(defn- testing-add-header
+  [path & fns]
+  (testing "add header"
+    (let [res (do-post path
+                       {"id"         "test"
+                        "url"        "https://example.com/test"
+                        "add-header" ".."})]
+      (is (= http/ok (:status res))
+          "OK")
+      (is (re-find #"<li [^>]*?class=\"header\"" (:body res))
+          "has header input")
+      (doseq [f fns] (f res)))))
+
+(defn- testing-delete-header
+  [path & fns]
+  (testing "delete header"
+    (let [res (do-post path
+                       {"id"              "test"
+                        "url"             "https://example.com/test"
+                        "header-names"    ["First" "Second"]
+                        "header-values"   ["1" "2"]
+                        "delete-header-0" ".."})]
+      (is (= http/ok (:status res))
+          "OK")
+      (is (= 1 (count (re-seq #"<li [^>]*?class=\"header\"" (:body res))))
+          "has header input")
+      (let [input (re-find #"<input [^>]*?name=\"header-names\[\]\".*?>" (:body res))]
+        (is input
+            "has header-name input")
+        (is (re-find #"value=\"Second\"" input)
+            "has header-name input"))
+      (doseq [f fns] (f res)))))
+
+(defn- testing-select-auth
+  [path & fns]
+  (testing "select-auth"
+    (let [res (do-post path
+                       {"id"          "test"
+                        "url"         "https://example.com/test"
+                        "auth"        "basic"
+                        "select-auth" ".."})]
+      (is (= http/ok (:status res))
+          "OK")
+      (is (re-find #"<input.*?name=\"basic-auth-user\"" (:body res))
+          "has basic auth input")
+      (doseq [f fns] (f res)))
+    (let [res (do-post path
+                       {"id"          "test"
+                        "url"         "https://example.com/test"
+                        "auth"        "oauth"
+                        "select-auth" ".."})]
+      (is (= http/ok (:status res))
+          "OK")
+      (is (re-find #"<input.*?name=\"oauth-url\"" (:body res))
+          "has oauth URL input")
+      (doseq [f fns] (f res)))))
+
 (deftest update-institution
   (testing "POST /institutions/Basic.Auth.Backend"
     (is (= http/not-found (:status (do-post "/institutions/DoesNotExist")))
@@ -102,69 +171,37 @@
              (-> res ::state/command))
           "has update-institution command for Basic.Auth.Backend")))
 
-  (testing "errors"
-    (let [res (do-post "/institutions/Basic.Auth.Backend"
-                       {:id  "test"
-                        :url "bad"})]
-      (is (= http/not-acceptable (:status res))
-          "not acceptable")
-      (is (re-find #"flash" (:body res))
-          "includes error message")))
+  (testing-errors
+   "/institutions/Basic.Auth.Backend"
+   (fn [res]
+     (is (re-find #"Edit Institution" (:body res))
+         "has header")))
 
-  (testing "add header"
-    (let [res (do-post "/institutions/Basic.Auth.Backend"
-                       {"id"         "test"
-                        "url"        "https://example.com/test"
-                        "add-header" ".."})]
-      (is (= http/ok (:status res))
-          "OK")
-      (is (re-find #"<li [^>]*?class=\"header\"" (:body res))
-          "has header input")))
+  (testing-add-header
+   "/institutions/Basic.Auth.Backend"
+   (fn [res]
+     (is (re-find #"<h2>Edit Institution</h2>" (:body res))
+         "has edit title")))
 
-  (testing "delete header"
-    (let [res (do-post "/institutions/Basic.Auth.Backend"
-                       {"id"              "test"
-                        "url"             "https://example.com/test"
-                        "header-names"    ["First" "Second"]
-                        "header-values"   ["1" "2"]
-                        "delete-header-0" ".."})]
-      (is (= http/ok (:status res))
-          "OK")
-      (is (= 1 (count (re-seq #"<li [^>]*?class=\"header\"" (:body res))))
-          "has header input")
-      (let [input (re-find #"<input [^>]*?name=\"header-names\[\]\".*?>" (:body res))]
-        (is input
-            "has header-name input")
-        (is (re-find #"value=\"Second\"" input)
-            "has header-name input"))))
+  (testing-delete-header
+   "/institutions/Basic.Auth.Backend"
+   (fn [res]
+     (is (re-find #"<h2>Edit Institution</h2>" (:body res))
+         "has edit title")))
 
-  (testing "select-auth"
-    (let [res (do-post "/institutions/Basic.Auth.Backend"
-                       {"id"          "test"
-                        "url"         "https://example.com/test"
-                        "auth"        "basic"
-                        "select-auth" ".."})]
-      (is (= http/ok (:status res))
-          "OK")
-      (is (re-find #"<input.*?name=\"basic-auth-user\"" (:body res))
-          "has basic auth input"))
-    (let [res (do-post "/institutions/Basic.Auth.Backend"
-                       {"id"          "test"
-                        "url"         "https://example.com/test"
-                        "auth"        "oauth"
-                        "select-auth" ".."})]
-      (is (= http/ok (:status res))
-          "OK")
-      (is (re-find #"<input.*?name=\"oauth-url\"" (:body res))
-          "has oauth URL input"))))
+  (testing-select-auth
+   "/institutions/Basic.Auth.Backend"
+   (fn [res]
+     (is (re-find #"<h2>Edit Institution</h2>" (:body res))
+         "has edit title"))))
 
 (deftest new-institution
   (testing "GET /institutions/new"
     (let [res (do-get "/institutions/new")]
       (is (= http/ok (:status res))
           "OK")
-      (is (re-find #"Create Institution" (:body res))
-          "includes header")))
+      (is (re-find #"<h2>Create Institution</h2>" (:body res))
+          "has create title")))
 
   (testing "POST /institutions/new"
     (let [res (do-post "/institutions/new"
@@ -192,7 +229,31 @@
                                 {:grant_type    "client_credentials",
                                  :client_id     "fred",
                                  :client_secret "wilma"}}}}}}
-             (-> res ::state/command last))))))
+             (-> res ::state/command last)))))
+
+  (testing-errors
+   "/institutions/new"
+   (fn [res]
+     (is (re-find #"Create Institution" (:body res))
+         "has header")))
+
+  (testing-add-header
+   "/institutions/new"
+   (fn [res]
+     (is (re-find #"Create Institution" (:body res))
+         "has header")))
+
+  (testing-delete-header
+   "/institutions/new"
+   (fn [res]
+     (is (re-find #"Create Institution" (:body res))
+         "has header")))
+
+  (testing-select-auth
+   "/institutions/new"
+   (fn [res]
+     (is (re-find #"Create Institution" (:body res))
+         "has header"))))
 
 (def test-institutions
   {"Basic.Auth.Backend" {:id           "Basic.Auth.Backend"

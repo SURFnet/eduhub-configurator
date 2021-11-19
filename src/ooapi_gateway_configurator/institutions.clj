@@ -37,7 +37,6 @@
             headers
             oauth2]} :proxyOptions} orig-id]
   (cond-> {"id"            orig-id
-           "orig-id"       orig-id
            "url"           url
            "auth"          (cond auth   "basic"
                                  oauth2 "oauth")
@@ -243,7 +242,7 @@
 
 (defn- detail-page
   "Institution detail hiccup."
-  [{:strs [orig-id] :as institution} & {:keys [dirty]}]
+  [institution orig-id & {:keys [dirty]}]
   [:div.detail
    (into
     [:nav
@@ -308,31 +307,31 @@
       (-> params
           (update "header-names" conj "")
           (update "header-values" conj "")
-          (detail-page :dirty true)
+          (detail-page orig-id :dirty true)
           (layout req subtitle))
 
       delete-header-fn
       (-> params
           (update "header-names" delete-header-fn)
           (update "header-values" delete-header-fn)
-          (detail-page :dirty true)
+          (detail-page orig-id :dirty true)
           (layout req subtitle))
 
       select-auth
       (-> params
-          (detail-page :dirty true)
+          (detail-page orig-id :dirty true)
           (layout req subtitle))
 
       errors
       (-> params
-          (detail-page :dirty true)
+          (detail-page orig-id :dirty true)
           (layout (assoc req :flash (str "Invalid input;\n" (s/join ",\n" errors))) subtitle)
           (render req)
           (status http/not-acceptable))
 
       (and (not= id orig-id) (contains? institutions id))
       (-> params
-          (detail-page :dirty true)
+          (detail-page orig-id :dirty true)
           (layout (assoc req :flash (str "ID already taken; " id)) subtitle))
 
       :else
@@ -354,7 +353,7 @@
 
   (GET "/institutions/new" req
        (-> {}
-           (detail-page)
+           (detail-page nil)
            (layout req (subtitle nil))))
 
   (POST "/institutions/new" req
@@ -366,7 +365,7 @@
        (if-let [institution (get institutions orig-id)]
          (-> institution
              (->form orig-id)
-             (detail-page)
+             (detail-page orig-id)
              (layout req (subtitle orig-id)))
          (not-found (str "Institution '" orig-id "' not found..")
                     req)))
