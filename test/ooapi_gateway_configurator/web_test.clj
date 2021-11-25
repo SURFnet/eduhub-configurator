@@ -14,7 +14,7 @@
 ;; with this program. If not, see http://www.gnu.org/licenses/.
 
 (ns ooapi-gateway-configurator.web-test
-  (:require [clojure.test :refer :all]
+  (:require [clojure.test :refer [deftest testing is]]
             [ooapi-gateway-configurator.http :as http]
             [ooapi-gateway-configurator.web :as web]
             [ring.middleware.defaults :refer [site-defaults wrap-defaults]]

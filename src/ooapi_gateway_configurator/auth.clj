@@ -107,7 +107,7 @@
           (response/status status/unauthorized)))))
 
 (defn auth-component
-  "Login/logout block for html interface"
+  "Login/logout block for html interface."
   [request]
   [:div.login
    (if (user-info request)

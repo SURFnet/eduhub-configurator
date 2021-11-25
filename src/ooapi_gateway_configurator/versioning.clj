@@ -121,9 +121,10 @@
 (defonce ^:private monitor (Object.))
 
 (defn checkout
-  "Get the contents of the latest version of the tracked file. If the
-  source file has been modified since the last commit, throw away any
-  edits and start anew from the source file.
+  "Get the contents of the latest version of the tracked file.
+
+  If the source file has been modified since the last commit, throw
+  away any edits and start anew from the source file.
 
   Returns a map of :contents, :version and :source-version. If
   `parse-fn` is provided, it's applied to :contents after calculating
@@ -139,7 +140,7 @@
          source)))))
 
 (defn uncommitted?
-  "true if the given checkout was modified compared to the source version"
+  "Return true if the given checkout was modified compared to the source."
   [{:keys [version source-version]}]
   (not= version source-version))
 
@@ -164,9 +165,9 @@
    (stage! source-path source-version source-version (serialize-fn contents) opts)))
 
 (defn unstage!
-  "Remove the staged version. The next checkout will return the
-  then-current source version.
+  "Remove the staged version. Something something.
 
+  The next checkout will return the then-current source version.
   Returns true if stage was deleted, nil if nothing was staged."
   [source-path opts]
   (let [f (io/as-file (stage-file-path source-path opts))]

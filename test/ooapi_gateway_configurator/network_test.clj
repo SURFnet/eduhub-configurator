@@ -14,7 +14,7 @@
 ;; with this program. If not, see http://www.gnu.org/licenses/.
 
 (ns ooapi-gateway-configurator.network-test
-  (:require [clojure.test :refer :all]
+  (:require [clojure.test :refer [deftest testing is use-fixtures]]
             [ooapi-gateway-configurator.http :as http]
             [ooapi-gateway-configurator.network :as network]
             [ooapi-gateway-configurator.store-test :as store-test]

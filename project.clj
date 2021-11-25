@@ -13,7 +13,7 @@
 ;; You should have received a copy of the GNU General Public License along
 ;; with this program. If not, see http://www.gnu.org/licenses/.
 
-(defproject ooapi-gateway-configurator "0.1.0-SNAPSHOT"
+(defproject nl.surf/ooapi-gateway-configurator "0.1.0-SNAPSHOT"
   :description "Configure the Surf OOAPI Gateway"
   :license {:name "GPLv3"
             :url  "https://www.gnu.org/licenses/gpl-3.0.en.html"}
@@ -47,9 +47,6 @@
                                       [org.clojure/tools.namespace "1.1.0"]
                                       [ring/ring-json "0.5.1"]
                                       [ring/ring-mock "0.4.0"]]
-                       :plugins      [[lein-kibit "0.1.8"]]
-                       :aliases      {"lint" ["do"
-                                              ["run" "-m" "clj-kondo.main" "--lint" "src"]
-                                              "kibit"]}}}
+                       :aliases      {"lint"  ["run" "-m" "clj-kondo.main" "--lint" "src"]}}}
 
   :repl-options {:init-ns user})

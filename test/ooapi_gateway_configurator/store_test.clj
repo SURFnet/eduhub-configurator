@@ -16,7 +16,7 @@
 (ns ooapi-gateway-configurator.store-test
   (:require [clj-yaml.core :as yaml]
             [clojure.java.io :as io]
-            [clojure.test :refer :all]
+            [clojure.test :refer [deftest testing is use-fixtures]]
             [datascript.core :as d]
             [ooapi-gateway-configurator.model :as model]
             [ooapi-gateway-configurator.store :as store]
@@ -56,7 +56,7 @@
       (teardown state))))
 
 (deftest fetch
-  (let [{:keys [model applications institutions access-control-lists]} (#'store/fetch *config*)]
+  (let [{:keys [model]} (#'store/fetch *config*)]
     (testing "applications"
       (is (= #{"fred" "barney" "bubbles"}
              (model/app-ids model))))

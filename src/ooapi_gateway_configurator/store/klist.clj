@@ -14,11 +14,13 @@
 ;; with this program. If not, see http://www.gnu.org/licenses/.
 
 (ns ooapi-gateway-configurator.store.klist
-  "Functions that treat sequential collections of maps with a single
+  "Functions to treat klists as maps.
+
+  Klists are sequential collections of maps with a single
   key-value pair as maps, similar to traditional plists.
 
-  This is slow and mostly useless, so don't use it unless you have to
-  deal with data that is already in this format."
+  These datastructures are slow and mostly useless, so don't use it
+  unless you have to deal with data that is already in this format."
   (:refer-clojure :exclude [get assoc assoc-in update-in update get-in]))
 
 (defn- klist-item?

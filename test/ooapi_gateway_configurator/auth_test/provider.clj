@@ -14,11 +14,11 @@
 ;; with this program. If not, see http://www.gnu.org/licenses/.
 
 (ns ooapi-gateway-configurator.auth-test.provider
-  "This provides a minimal implementation of an OpenID Connect provider
-  with code flow for authenticating users.
+  "A minimal implementation of an OpenID Connect provider.
 
-  This is just the bare minimum needed to test OIDC clients with the
-  authorization code flow."
+  Only provides the code flow for authenticating users.  This is just
+  the bare minimum needed to test OIDC clients with the authorization
+  code flow."
   (:require [clojure.tools.logging :as log]
             [compojure.core :refer [GET POST routes]]
             [ooapi-gateway-configurator.http :as status]
@@ -39,7 +39,7 @@
   [{:keys [client-id user-info]}]
   (let [codestore (atom {})]
     (-> (routes
-         (GET "/oidc/authorize" {{:keys [client_id response_type redirect_uri response_mode scope state]} :params :as request}
+         (GET "/oidc/authorize" {{:keys [client_id redirect_uri state]} :params}
               (if  (= client-id client_id)
                 (let [code (str (UUID/randomUUID))]
                   (swap! codestore assoc code {:state state})
@@ -48,10 +48,10 @@
                     (response/redirect uri)))
                 {:status status/forbidden
                  :body   {:error "Invalid client id"}}))
-         (POST "/oidc/token" {{:keys [code redirect-uri client_id]} :params}
+         (POST "/oidc/token" _
                {:status status/ok
                 :body {:access_token "fake"}})
-         (GET "/oidc/userinfo" request
+         (GET "/oidc/userinfo" _
               {:status status/ok
                :body user-info}))
         wrap-trace

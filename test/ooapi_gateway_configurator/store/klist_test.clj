@@ -14,8 +14,8 @@
 ;; with this program. If not, see http://www.gnu.org/licenses/.
 
 (ns ooapi-gateway-configurator.store.klist-test
-  (:require [ooapi-gateway-configurator.store.klist :as klist]
-            [clojure.test :refer [deftest is testing]]))
+  (:require [clojure.test :refer [deftest is]]
+            [ooapi-gateway-configurator.store.klist :as klist]))
 
 (deftest keylist
   (is (klist/klist? [{:bubbles 1}

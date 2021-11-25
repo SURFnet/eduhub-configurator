@@ -1,0 +1,10 @@
+{:linters {:missing-docstring {:level :off}
+           :unsorted-required-namespaces {:level :warning}
+           :single-key-in {:level :warning}
+
+           :docstring-blank {:level :warning}
+           :docstring-first-line-sentence {:level :warning}
+           :docstring-leading-trailing-whitespace {:level :warning}}
+ :hooks {:analyze-call {clojure.core/def hooks.user/docstring
+                        clojure.core/defn hooks.user/docstring
+                        clojure.core/ns hooks.user/docstring}}}

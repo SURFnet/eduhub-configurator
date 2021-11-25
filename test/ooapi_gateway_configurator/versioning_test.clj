@@ -91,7 +91,7 @@
           :contents       concurrent-contents}
          (versioning/checkout *test-path* {:work-dir *test-work-dir*}))))
 
-(deftest commit-and-revert
+(deftest commit-and-discarded-on-overwrite
   (is (= {:source-version initial-digest
           :version        initial-digest
           :contents       initial-contents}
@@ -111,7 +111,7 @@
           :contents       concurrent-contents}
          (versioning/checkout *test-path* {:work-dir *test-work-dir*}))))
 
-(deftest commit-and-revert
+(deftest commit-and-reset
   (is (= {:source-version initial-digest
           :version        initial-digest
           :contents       initial-contents}
