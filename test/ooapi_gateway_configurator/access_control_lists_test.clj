@@ -14,11 +14,10 @@
 ;; with this program. If not, see http://www.gnu.org/licenses/.
 
 (ns ooapi-gateway-configurator.access-control-lists-test
-  (:require [clj-yaml.core :as yaml]
-            [clojure.test :refer :all]
-            [ooapi-gateway-configurator.http :as http]
+  (:require [clojure.test :refer [deftest is testing use-fixtures]]
             [ooapi-gateway-configurator.access-control-lists :as access-control-lists]
-            [ooapi-gateway-configurator.state :as state]
+            [ooapi-gateway-configurator.http :as http]
+            [ooapi-gateway-configurator.model :as model]
             [ooapi-gateway-configurator.store-test :as store-test]
             [ring.middleware.nested-params :refer [wrap-nested-params]]
             [ring.mock.request :refer [request]]))
@@ -76,11 +75,8 @@
             "redirected back to access-control-lists list")
         (is (:flash res)
             "has a message about update")
-        (is (= [:ooapi-gateway-configurator.state/update-access-control-list-for-application
-                "fred"
-                {"Basic.Auth.Backend" #{"/"}, "Oauth-2.Backend" #{}, "Api.Key.Backend" #{}}]
-               (-> res ::state/command))
-            "has update-access-control-list-for-application command for fred")))
+        (is (seq (::model/tx res))
+            "updates acl")))
 
     (testing "select-all"
       (let [res (do-post "/applications/fred/access-control-list"
@@ -132,11 +128,8 @@
             "redirected back to access-control-lists list")
         (is (:flash res)
             "has a message about update")
-        (is (= [:ooapi-gateway-configurator.state/update-access-control-list-for-institution
-                "Basic.Auth.Backend"
-                {"fred" #{"/"}, "barney" #{}, "bubbles" #{}}]
-               (-> res ::state/command))
-            "has update-access-control-list-for-institution command for Basic.Auth.Backend")))
+        (is (seq (::model/tx res))
+            "updates acl")))
 
     (testing "select-all"
       (let [res (do-post "/institutions/Basic.Auth.Backend/access-control-list"
@@ -176,20 +169,3 @@
                       (filter #(re-find #"\bchecked\b" %))
                       count))
             "only 1 checked for barney")))))
-
-(def test-access-control-lists
-  {"fred" {"Basic.Auth.Backend" #{"/"}
-           "Oauth-2.Backend"    #{"/courses"}
-           "Api.Key.Backend"    #{"/news-feeds/:newsFeedId"}}})
-
-(def test-institutions
-  {"Basic.Auth.Backend" {:url "https://basic.example.com"}
-   "Oauth-2.Backend"    {:url "https://oauth.example.com"}
-   "Api.Key.Backend"    {:url "https://api.example.com"}})
-
-(deftest ->form->
-  (testing "->form and form-> round trip")
-  (doseq [[id access-control-list] test-access-control-lists]
-    (is (= access-control-list
-           (#'access-control-lists/form-> (#'access-control-lists/->form access-control-list id)
-                                          test-access-control-lists)))))

@@ -14,11 +14,10 @@
 ;; with this program. If not, see http://www.gnu.org/licenses/.
 
 (ns ooapi-gateway-configurator.institutions-test
-  (:require [clj-yaml.core :as yaml]
-            [clojure.test :refer :all]
+  (:require [clojure.test :refer [deftest testing is use-fixtures]]
             [ooapi-gateway-configurator.http :as http]
             [ooapi-gateway-configurator.institutions :as institutions]
-            [ooapi-gateway-configurator.state :as state]
+            [ooapi-gateway-configurator.model :as model]
             [ooapi-gateway-configurator.store-test :as store-test]
             [ring.mock.request :refer [request]]))
 
@@ -27,7 +26,7 @@
 (use-fixtures :each
   (fn [f]
     (let [state (store-test/setup)]
-      (binding [*app* (store-test/wrap institutions/handler state)]
+      (binding [*app* (store-test/wrap institutions/handler (assoc state :read-only? true))]
         (f))
       (store-test/teardown state))))
 
@@ -73,8 +72,9 @@
           "redirected back to institutions list")
       (is (:flash res)
           "has a message about deletion")
-      (is (= [::state/delete-institution "Basic.Auth.Backend"] (-> res ::state/command))
+      (is (= :db/retractEntity (-> res ::model/tx ffirst))
           "has delete-application command for Basic.Auth.Backend"))))
+
 
 (defn- testing-errors
   [path & fns]
@@ -163,13 +163,14 @@
           "redirected back to institutions list")
       (is (:flash res)
           "has a message about update")
-      (is (= [::state/update-institution "Basic.Auth.Backend"
-              {:id           "test",
-               :url          "https://example.com/test",
-               :proxyOptions {:auth    "fred:betty"
-                              :headers {"X-test" "1", "X-other" "2"}}}]
-             (-> res ::state/command))
-          "has update-institution command for Basic.Auth.Backend")))
+      (is (= :db/add (-> res ::model/tx first first))
+          "rename entity")
+      (is (= #:institution{:id          "test"
+                        :url           "https://example.com/test"
+                        :proxy-options {:auth    "fred:betty"
+                                        :headers {"X-test" "1", "X-other" "2"}}}
+             (-> res ::model/tx last))
+          "updates Basic.Auth.Backend")))
 
   (testing-errors
    "/institutions/Basic.Auth.Backend"
@@ -217,19 +218,19 @@
           "redirected back to institutions list")
       (is (:flash res)
           "has a message about creation")
-      (is (= ::state/create-institution (-> res ::state/command first))
-          "has create-institution command")
-      (is (= {:id           "test"
-              :url          "https://example.com/test"
-              :proxyOptions {:oauth2
-                             {:clientCredentials
-                              {:tokenEndpoint
-                               {:url "https://oauth/test",
-                                :params
-                                {:grant_type    "client_credentials",
-                                 :client_id     "fred",
-                                 :client_secret "wilma"}}}}}}
-             (-> res ::state/command last)))))
+            (is (= #:institution{:proxy-options
+                        {:oauth2
+                         {:clientCredentials
+                          {:tokenEndpoint
+                           {:url "https://oauth/test",
+                            :params
+                            {:grant_type "client_credentials",
+                             :client_id "fred",
+                             :client_secret "wilma"}}}}},
+                        :url "https://example.com/test",
+                        :id "test"}
+             (-> res ::model/tx first))
+          "will insert new institution")))
 
   (testing-errors
    "/institutions/new"
@@ -254,28 +255,3 @@
    (fn [res]
      (is (re-find #"Create Institution" (:body res))
          "has header"))))
-
-(def test-institutions
-  {"Basic.Auth.Backend" {:id           "Basic.Auth.Backend"
-                         :url          "https://example.com/test-backend"
-                         :proxyOptions {:auth "fred:wilma"}}
-   "Oauth-2.Backend"    {:id           "Oauth-2.Backend"
-                         :url          "https://example.com/other-test-backend"
-                         :proxyOptions {:oauth2 {:clientCredentials {:tokenEndpoint {:url    "http://localhost:8084/mock/token"
-                                                                                     :params {:grant_type    "client_credentials"
-                                                                                              :client_id     "fred"
-                                                                                              :client_secret "wilma"}}}}}}
-   "Api.Key.Backend"    {:id           "Api.Key.Backend"
-                         :url          "https://example.com/api-key-backend"
-                         :proxyOptions {:headers {:Authorization "Bearer test-api-key"}}}})
-
-(deftest ->form->
-  (testing "->form and form-> round trip")
-  (doseq [[id institution] test-institutions]
-    (is (= (yaml/generate-string institution) ;; yaml it to avoid problems with header names becoming keywords
-           (yaml/generate-string (#'institutions/form-> (#'institutions/->form institution id)))))))
-
-(deftest form-errors
-  (testing "test institutions do not have errors"
-    (doseq [institution (map (fn [[id m]] (#'institutions/->form m id)) test-institutions)]
-      (is (not (#'institutions/form-errors institution))))))

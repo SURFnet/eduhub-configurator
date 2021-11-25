@@ -15,8 +15,10 @@
 
 (ns user
   (:require [clojure.tools.namespace.repl :refer [refresh-all]]
+            [datascript.core :as d]
             [environ.core :refer [env]]
-            [ooapi-gateway-configurator.core :as core]))
+            [ooapi-gateway-configurator.core :as core]
+            [ooapi-gateway-configurator.model :as model]))
 
 (defn mk-dev-config
   []

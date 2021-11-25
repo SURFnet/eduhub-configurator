@@ -17,12 +17,13 @@
   (:require [clojure.string :as s]
             [compojure.core :refer [defroutes DELETE GET POST]]
             [compojure.response :refer [render]]
+            [datascript.core :as d]
             [hiccup.util :refer [escape-html]]
             [ooapi-gateway-configurator.digest :as digest]
             [ooapi-gateway-configurator.form :as form]
             [ooapi-gateway-configurator.html :refer [confirm-js layout not-found]]
             [ooapi-gateway-configurator.http :as http]
-            [ooapi-gateway-configurator.state :as state]
+            [ooapi-gateway-configurator.model :as model]
             [ring.util.codec :refer [url-encode]]
             [ring.util.response :refer [redirect status]]))
 
@@ -44,26 +45,26 @@
          (= 32 (count salt))]}
   (-> (str pass "-" salt) digest/sha256 hex))
 
-(defn- ->form
-  "Application to form."
-  [{:strs [passwordSalt passwordHash]} id]
-  {"id"            (name id)
-   "password-salt" passwordSalt
-   "password-hash" passwordHash})
+(defn- ->params
+  "Application model to form params."
+  [{:app/keys [password-salt password-hash id]}]
+  {"id"            id
+   "password-salt" password-salt
+   "password-hash" password-hash})
 
-(defn- form->
-  "Form to application."
+(defn- params->
+  "Form params to application model."
   [{:strs [id password]}]
-  (into {:id id}
+  (into #:app {:id id}
         (when password
           (let [salt (generate-random-string)]
-            {:passwordSalt salt
-             :passwordHash (hash-password password salt)}))))
+            #:app {:password-salt salt
+                   :password-hash (hash-password password salt)}))))
 
 (def id-pattern-re #"[a-zA-Z0-9_:-]*")
 (def id-pattern-message "only a-z, A-Z, 0-9, _, : and - characters allowed")
 
-(defn- form-errors
+(defn- params-errors
   [{:strs [id password]}]
   (cond-> []
     (s/blank? id)
@@ -101,14 +102,14 @@
 
 (defn- index-page
   "List of applications hiccup."
-  [applications]
+  [application-ids]
   [:div.index
    [:nav
     [:a {:href "/"} "⌂"]
     " / "
     [:a.current "Applications"]]
    [:ul
-    (for [id (->> applications (map #(get % "id")) (sort))]
+    (for [id (sort application-ids)]
       [:li [:a {:href (url-encode id)} (escape-html id)]])]
    [:div.actions
     [:a {:href :new, :class "button"} "New application"]]])
@@ -161,12 +162,12 @@
 
 (defn- create-or-update
   "Handle create or update request."
-  [{:keys                       [params ::state/applications]
+  [{:keys                       [model params]
     {:keys [orig-id]}           :params
     {:strs [id reset-password]} :params
     :as                         req}]
   (let [subtitle (subtitle orig-id)
-        errors   (form-errors params)]
+        errors   (params-errors params)]
     (cond
       reset-password
       (-> params
@@ -181,60 +182,83 @@
           (render req)
           (status http/not-acceptable))
 
-      (and (not= id orig-id) (contains? applications id))
+      (and (not= id orig-id) (d/entid model [:app/id id]))
       (-> params
           (detail-page orig-id :dirty true)
           (layout (assoc req :flash (str "ID already taken; " id)) subtitle))
 
       :else
-      (let [application (form-> params)]
+      (let [application (params-> params)]
         (-> "."
             (redirect :see-other)
-            (assoc ::state/command (if orig-id
-                                     [::state/update-application orig-id application]
-                                     [::state/create-application application]))
+            ;; Also return a transaction to update or insert the
+            ;; application. Note that a transaction is a collection of
+            ;; changes.
+            ;;
+            ;; See also
+            ;; https://docs.datomic.com/on-prem/transactions/transactions.html
+            (assoc ::model/tx (cond-> []
+                                (and orig-id (not= orig-id (:app/id application)))
+                                ;; The app/id changed, we need to
+                                ;; transact that attribute first. This
+                                ;; transaction finds the attribute by
+                                ;; it's original id, and set its value
+                                ;; to the new id.
+                                (conj [:db/add [:app/id orig-id] :app/id (:app/id application)])
+
+                                true
+                                ;; Update the rest of the attributes;
+                                ;; uses an entity map as a
+                                ;; change. This adds all attributes in
+                                ;; the map. The entity is found by the
+                                ;; app/id attribute.
+                                ;;
+                                ;; See also
+                                ;; https://docs.datomic.com/on-prem/transactions/transactions.html#adding-entity-references
+                                (conj application)))
             (assoc :flash (str (if orig-id "Updated" "Created") " application '" id "'")))))))
 
 (defroutes handler
-  (GET "/applications/" {:keys [::state/applications] :as req}
-       (-> (map (fn [[id m]] (->form m id)) applications)
-           (index-page)
-           (layout req "applications")))
+  (GET "/applications/" {:keys [model] :as req}
+    (-> model
+        (model/app-ids)
+        (index-page)
+        (layout req "applications")))
 
   (GET "/applications/new" req
-       (-> {}
-           (detail-page nil)
-           (layout req (subtitle nil))))
+    (-> {}
+        (detail-page nil)
+        (layout req (subtitle nil))))
 
   (POST "/applications/new" req
-        (create-or-update req))
+    (create-or-update req))
 
-  (GET "/applications/:orig-id" {:keys             [::state/applications]
+  (GET "/applications/:orig-id" {:keys             [model]
                                  {:keys [orig-id]} :params
                                  :as               req}
-       (if-let [application (get applications orig-id)]
-         (-> application
-             (->form orig-id)
-             (detail-page orig-id)
-             (layout req (subtitle orig-id)))
-         (not-found (str "Application '" orig-id "' not found..")
-                    req)))
+    (if-let [application (d/pull model '[*] [:app/id orig-id])]
+      (-> application
+          (->params)
+          (detail-page orig-id)
+          (layout req (subtitle orig-id)))
+      (not-found (str "Application '" orig-id "' not found..")
+                 req)))
 
-  (POST "/applications/:orig-id" {:keys             [::state/applications]
+  (POST "/applications/:orig-id" {:keys             [model]
                                   {:keys [orig-id]} :params
                                   :as               req}
-        (if (get applications orig-id)
-          (create-or-update req)
-          (not-found (str "Application '" orig-id "' not found..")
-                     req)))
+    (if (d/entid model [:app/id orig-id])
+      (create-or-update req)
+      (not-found (str "Application '" orig-id "' not found..")
+                 req)))
 
-  (DELETE "/applications/:id" {:keys        [::state/applications]
+  (DELETE "/applications/:id" {:keys        [model]
                                {:keys [id]} :params
                                :as          req}
-          (if (get applications id)
-            (-> "."
-                (redirect :see-other)
-                (assoc ::state/command [::state/delete-application id])
-                (assoc :flash (str "Deleted application '" id "'")))
-            (not-found (str "Application '" id "' not found..")
-                       req))))
+    (if (d/entid model [:app/id id])
+      (-> "."
+          (redirect :see-other)
+          (assoc ::model/tx (model/remove-app model id))
+          (assoc :flash (str "Deleted application '" id "'")))
+      (not-found (str "Application '" id "' not found..")
+                 req))))

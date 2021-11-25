@@ -101,16 +101,11 @@ pipelines:
       - gatekeeper:
           - action:
               acls:
-                - app: fred
-                  endpoints:
-                    - endpoint: Basic.Auth.Backend
-                      paths: ['/', '/courses', '/courses/:id']
-                    - endpoint: Oauth-2.Backend
-                      paths: ['/', '/courses', '/courses/:id']
+                # The tests depend on this being sorted by app name
                 - app: barney
                   endpoints:
                     - endpoint: Basic.Auth.Backend
-                      paths: ['/', '/courses', '/courses/:id']
+                      paths: ['/', '/courses', '/courses/:courseId']
                     - endpoint: Oauth-2.Backend
                       paths: ['/']
                     - endpoint: Api.Key.Backend
@@ -119,6 +114,12 @@ pipelines:
                   endpoints:
                     - endpoint: Api.Key.Backend
                       paths: ['/']
+                - app: fred
+                  endpoints:
+                    - endpoint: Basic.Auth.Backend
+                      paths: ['/', '/courses', '/courses/:courseId']
+                    - endpoint: Oauth-2.Backend
+                      paths: ['/', '/courses', '/courses/:courseId']
               apps: {
                 "fred": {
                   "passwordSalt": "8b52795e90b598eb022647f17c93ac2b",

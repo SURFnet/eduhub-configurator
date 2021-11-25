@@ -17,11 +17,12 @@
   (:require [clojure.string :as s]
             [compojure.core :refer [defroutes DELETE GET POST]]
             [compojure.response :refer [render]]
+            [datascript.core :as d]
             [hiccup.util :refer [escape-html]]
             [ooapi-gateway-configurator.form :as form]
             [ooapi-gateway-configurator.html :refer [confirm-js layout not-found]]
             [ooapi-gateway-configurator.http :as http]
-            [ooapi-gateway-configurator.state :as state]
+            [ooapi-gateway-configurator.model :as model]
             [ring.util.codec :refer [url-encode]]
             [ring.util.response :refer [redirect status]]))
 
@@ -30,13 +31,12 @@
     (name v)
     (str v)))
 
-(defn- ->form
+(defn- ->params
   "Transform an institution into form parameters."
-  [{:keys            [url]
-    {:keys [auth
-            headers
-            oauth2]} :proxyOptions} orig-id]
-  (cond-> {"id"            orig-id
+  [{url :institution/url
+    id :institution/id
+    {:keys [auth headers oauth2]} :institution/proxy-options}]
+  (cond-> {"id"            id
            "url"           url
            "auth"          (cond auth   "basic"
                                  oauth2 "oauth")
@@ -49,8 +49,8 @@
                   "oauth-client-secret" (-> oauth2 :clientCredentials :tokenEndpoint :params :client_secret)
                   "oauth-scope"  (-> oauth2 :clientCredentials :tokenEndpoint :params :scope))))
 
-(defn- form->
-  "Transform form parameters into an institution."
+(defn- params->
+  "Transform form parameters into an institution entity."
   [{:strs [id
            url
            auth
@@ -67,10 +67,9 @@
                       {:clientCredentials
                        {:tokenEndpoint
                         {:url    oauth-url
-                         :params (cond->
-                                     {:grant_type    "client_credentials"
-                                      :client_id     oauth-client-id
-                                      :client_secret oauth-client-secret}
+                         :params (cond-> {:grant_type    "client_credentials"
+                                          :client_id     oauth-client-id
+                                          :client_secret oauth-client-secret}
                                    (not (s/blank? oauth-scope))
                                    (assoc :scope oauth-scope))}}})
 
@@ -79,9 +78,9 @@
                       (-> header-names
                           (zipmap header-values)
                           (dissoc ""))))]
-    (cond-> {:id id, :url url}
+    (cond-> {:institution/id id, :institution/url url}
       (seq opts)
-      (assoc :proxyOptions opts))))
+      (assoc :institution/proxy-options opts))))
 
 (defn- valid-http-url? [s]
   (try
@@ -92,7 +91,7 @@
 (def id-pattern-re #"[a-zA-Z0-9.-]*")
 (def id-pattern-message "only a-z, A-Z, 0-9, . and - characters allowed")
 
-(defn- form-errors
+(defn- params-errors
   [{:strs [id url auth
            header-names header-values
            basic-auth-user basic-auth-pass
@@ -228,14 +227,14 @@
 
 (defn- index-page
   "List of institution hiccup."
-  [institutions]
+  [institution-ids]
   [:div.index
    [:nav
     [:a {:href "/"} "⌂"]
     " / "
     [:a.current "Institutions"]]
    [:ul
-    (for [id (->> institutions (map #(get % "id")) (sort))]
+    (for [id (sort institution-ids)]
       [:li [:a {:href (url-encode id)} (escape-html id)]])]
    [:div.actions
     [:a {:href :new, :class "button"} "New institution"]]])
@@ -295,12 +294,12 @@
 
 (defn- create-or-update
   "Handle create or update request."
-  [{:keys                               [params ::state/institutions]
+  [{:keys                               [params model]
     {:keys [orig-id]}                   :params
     {:strs [id add-header select-auth]} :params
     :as                                 req}]
   (let [subtitle         (subtitle orig-id)
-        errors           (form-errors params)
+        errors           (params-errors params)
         delete-header-fn (delete-header-fn-from-params params)]
     (cond
       add-header
@@ -329,62 +328,67 @@
           (render req)
           (status http/not-acceptable))
 
-      (and (not= id orig-id) (contains? institutions id))
+      (and (not= id orig-id) (d/entid model [:institution/id id]))
       (-> params
           (detail-page orig-id :dirty true)
           (layout (assoc req :flash (str "ID already taken; " id)) subtitle))
 
       :else
-      (let [institution (form-> params)]
+      (let [institution (params-> params)]
         (-> "."
             (redirect :see-other)
-            (assoc ::state/command (if orig-id
-                                     [::state/update-institution orig-id institution]
-                                     [::state/create-institution institution]))
+            (assoc ::model/tx (cond-> []
+                                (and orig-id (not= orig-id (:institution/id institution)))
+                                (conj [:db/add [:institution/id orig-id] :institution/id (:institution/id institution)])
+
+                                true
+                                (conj institution)))
             (assoc :flash (str (if orig-id "Updated" "Created") " institution '" id "'")))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defroutes handler
-  (GET "/institutions/" {:keys [::state/institutions] :as req}
-       (-> (map (fn [[id m]] (->form m id)) institutions)
-           (index-page)
-           (layout req "institutions")))
+  (GET "/institutions/" {:keys [model] :as req}
+    (-> model
+        (model/institution-ids)
+        (index-page)
+        (layout req "institutions")))
 
   (GET "/institutions/new" req
-       (-> {}
-           (detail-page nil)
-           (layout req (subtitle nil))))
+    (-> {}
+        (detail-page nil)
+        (layout req (subtitle nil))))
 
   (POST "/institutions/new" req
-        (create-or-update req))
+    (create-or-update req))
 
-  (GET "/institutions/:orig-id" {:keys             [::state/institutions]
+  (GET "/institutions/:orig-id" {:keys             [model]
                                  {:keys [orig-id]} :params
                                  :as               req}
-       (if-let [institution (get institutions orig-id)]
-         (-> institution
-             (->form orig-id)
-             (detail-page orig-id)
-             (layout req (subtitle orig-id)))
-         (not-found (str "Institution '" orig-id "' not found..")
-                    req)))
 
-  (POST "/institutions/:orig-id" {:keys             [::state/institutions]
+    (if-let [institution (d/pull model '[*] [:institution/id orig-id])]
+      (-> institution
+          (->params)
+          (detail-page orig-id)
+          (layout req (subtitle orig-id)))
+      (not-found (str "Institution '" orig-id "' not found..")
+                 req)))
+
+  (POST "/institutions/:orig-id" {:keys             [model]
                                   {:keys [orig-id]} :params
                                   :as               req}
-        (if (get institutions orig-id)
-          (create-or-update req)
-          (not-found (str "Institution '" orig-id "' not found..")
-                     req)))
+    (if (d/entid model [:institution/id orig-id])
+      (create-or-update req)
+      (not-found (str "Institution '" orig-id "' not found..")
+                 req)))
 
-  (DELETE "/institutions/:id" {:keys        [::state/institutions]
+  (DELETE "/institutions/:id" {:keys        [model]
                                {:keys [id]} :params
                                :as          req}
-          (if (get institutions id)
-            (-> "."
-                (redirect :see-other)
-                (assoc ::state/command [::state/delete-institution id])
-                (assoc :flash (str "Deleted institution '" id "'")))
-            (not-found (str "Institution '" id "' not found..")
-                       req))))
+    (if (d/entid model [:institution/id id])
+      (-> "."
+          (redirect :see-other)
+          (assoc ::model/tx (model/remove-institution model id))
+          (assoc :flash (str "Deleted institution '" id "'")))
+      (not-found (str "Institution '" id "' not found..")
+                 req))))

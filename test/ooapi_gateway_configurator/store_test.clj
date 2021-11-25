@@ -14,9 +14,11 @@
 ;; with this program. If not, see http://www.gnu.org/licenses/.
 
 (ns ooapi-gateway-configurator.store-test
-  (:require [clojure.java.io :as io]
+  (:require [clj-yaml.core :as yaml]
+            [clojure.java.io :as io]
             [clojure.test :refer :all]
-            [ooapi-gateway-configurator.state :as state]
+            [datascript.core :as d]
+            [ooapi-gateway-configurator.model :as model]
             [ooapi-gateway-configurator.store :as store]
             [ring.middleware.defaults :refer [site-defaults wrap-defaults]])
   (:import java.io.File))
@@ -33,10 +35,11 @@
   (.delete gateway-config-file))
 
 (defn wrap
-  [handler {:keys [gateway-config-file]}]
+  [handler {:keys [gateway-config-file read-only?] :or {read-only? false}}]
   (-> handler
       (store/wrap {:gateway-config-yaml (.getPath gateway-config-file)
-                   :pipeline            "test"})
+                   :pipeline            "test"
+                   :read-only?          read-only?})
       (wrap-defaults (-> site-defaults
                          (assoc-in [:params :keywordize] false)
                          (dissoc :security)))))
@@ -53,43 +56,36 @@
       (teardown state))))
 
 (deftest fetch
-  (let [{:keys [::state/applications
-                ::state/institutions
-                ::state/access-control-lists]} (#'store/fetch *config*)]
+  (let [{:keys [model applications institutions access-control-lists]} (#'store/fetch *config*)]
     (testing "applications"
-      (is (contains? applications "fred"))
-      (is (contains? applications "barney"))
-      (is (contains? applications "bubbles")))
+      (is (= #{"fred" "barney" "bubbles"}
+             (model/app-ids model))))
 
     (testing "institutions"
-      (is (contains? institutions "Basic.Auth.Backend"))
-      (is (contains? institutions "Oauth-2.Backend"))
-      (is (contains? institutions "Api.Key.Backend"))
+      (is (= #{"Basic.Auth.Backend" "Oauth-2.Backend" "Api.Key.Backend"}
+             (model/institution-ids model)))
 
       (testing "shape"
-        (is (= {:url          "https://example.com/test-backend"
-                :proxyOptions {:auth "fred:wilma"}}
-               (get institutions "Basic.Auth.Backend")))))
+        (is (= #:institution {:url          "https://example.com/test-backend"
+                              :proxy-options {:auth "fred:wilma"}}
+               (d/pull model
+                       '[:institution/url :institution/proxy-options]
+                       [:institution/id "Basic.Auth.Backend"])))))
 
     (testing "access-control-lists"
-      (is (contains? access-control-lists "fred"))
-      (is (contains? access-control-lists "barney"))
-      (is (contains? access-control-lists "bubbles"))
-
-      (testing "shape"
-        (is (= {"Basic.Auth.Backend" nil
-                "Oauth-2.Backend"    nil
-                "Api.Key.Backend"    #{"/"}}
-               (get access-control-lists "bubbles")))))))
+      (doseq [n ["fred" "barney" "bubbles"]]
+        (is (seq (d/q '[:find ?xs
+                        :in $ ?n
+                        :where
+                        [?a :app/id ?n]
+                        [?xs :access/app ?a]]
+                      model
+                      n)))))))
 
 (deftest put
-  (let [state {::state/applications         {"fred" {:passwordHash "..", :passwordSalt ".."}}
-               ::state/institutions         {"backend" {:url "http://example.com/put-test"}}
-               ::state/access-control-lists {"fred" {"backend" #{"/"}}}}]
-    (testing "round trip"
-      (#'store/put state *config*)
+  (let [yaml (yaml/parse-string (slurp (:gateway-config-yaml *config*)))
+        {:keys [model]} (#'store/fetch *config*)]
+    (testing "round trip does not change the data in the gateway configuration"
+      (#'store/put model *config*)
       (#'store/commit! *config*)
-      (is (= state (-> (#'store/fetch *config*)
-                       (select-keys [::state/applications
-                                     ::state/institutions
-                                     ::state/access-control-lists])))))))
+      (is (= yaml (yaml/parse-string (slurp (:gateway-config-yaml *config*))))))))

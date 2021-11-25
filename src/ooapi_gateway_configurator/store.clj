@@ -16,10 +16,11 @@
 (ns ooapi-gateway-configurator.store
   (:require [clj-yaml.core :as yaml]
             [clojure.java.io :as io]
+            [datascript.core :as d]
             [ooapi-gateway-configurator.form :as form]
             [ooapi-gateway-configurator.html-time :as html-time]
-            [ooapi-gateway-configurator.state :as state]
-            [ooapi-gateway-configurator.store.klist :as klist]
+            [ooapi-gateway-configurator.model :as model]
+            [ooapi-gateway-configurator.store.gateway-config :as gateway-config]
             [ooapi-gateway-configurator.versioning :as versioning]
             [ring.util.response :as response])
   (:import java.time.Instant))
@@ -27,106 +28,33 @@
 (defn- checkout-yaml [yaml-file opts]
   (versioning/checkout yaml-file yaml/parse-string opts))
 
-(defn- acl->access-control-list
-  "Transform gatekeeper policy action to a access control list for the
-  given application.  Only matching endpoints from the institutions
-  set will be used and institutions without a matching endpoint will
-  be registered with nil paths.
-
-  The shape of a ACL (in YAML) is as follows:
-
-    - app: fred
-      endpoints:
-        - endpoint: Basic.Auth.Backend
-          paths: ['/', '/courses', '/courses/:id']
-
-  The shape of the output (in EDN):
-
-    {\"Basic.Auth.Backend\"  #{\"/\", \"/courses\", \"/courses/:id\"}
-     \"Api.Key.Backend\"     nil
-     ..}
-  "
-  [application-id acls institution-ids]
-  (let [endps (->> acls
-                   (filter #(= application-id (:app %)))
-                   first
-                   :endpoints
-                   (reduce (fn [m {:keys [endpoint paths]}]
-                             (assoc m (name endpoint) (set paths)))
-                           {}))]
-    (reduce (fn [m id] (assoc m id (get endps id)))
-            {}
-            institution-ids)))
-
-(defn- gatekeeper-acls->acls
-  "Transform a list of gatekeeper action ACLs to a map from application
-  IDs to access control lists."
-  [acls app-ids institution-ids]
-  (reduce (fn [m app]
-            (assoc m app (acl->access-control-list app acls institution-ids)))
-          {}
-          app-ids))
-
-(defn- str-map-keys [m]
-  (reduce (fn [m [k v]] (assoc m (name k) v))
-          {}
-          m))
+(defn- yaml->conn
+  [config pipeline]
+  (doto (d/create-conn model/schema)
+    (d/transact! (gateway-config/yaml->model config pipeline))))
 
 (defn- fetch
   [{:keys [gateway-config-yaml work-dir pipeline]}]
-  (let [{{:keys [serviceEndpoints pipelines]
-          :as   gw}      :contents
+  (let [{gw     :contents
          current-version :version
          :as             checkout}      (checkout-yaml gateway-config-yaml {:work-dir work-dir})
-        {:keys [policies apiEndpoints]} (get pipelines (keyword pipeline))
-        api                             (-> apiEndpoints first keyword)
-        apps                            (-> policies
-                                            (klist/get-in [:gatekeeper :action :apps])
-                                            str-map-keys)
-        institutions                    (str-map-keys serviceEndpoints)]
-    {::state/applications         apps
-     ::state/institutions         institutions
+        conn (yaml->conn gw pipeline)]
+    {:conn conn
+     :model @conn
      ::uncommitted?               (versioning/uncommitted? checkout)
      ::versions                   (versioning/versions gateway-config-yaml {:work-dir work-dir})
-     ::current-version            current-version
-     ::state/access-control-lists (-> policies
-                                      (klist/get-in [:gatekeeper :action :acls])
-                                      (gatekeeper-acls->acls (keys apps) (keys institutions)))
-     ::state/api-paths            (-> gw :apiEndpoints api :paths set)}))
-
-(defn- acls->gatekeeper-acls
-  [acls]
-  (keep (fn [[app acl]]
-          (when-let [endpoints (->> acl
-                                    (filter (comp seq last))
-                                    (map (fn [[endp paths]]
-                                           {:endpoint endp, :paths paths}))
-                                    seq)]
-            {:app       app
-             :endpoints endpoints}))
-        acls))
+     ::current-version            current-version}))
 
 (defn- put
-  [{:keys [::state/applications ::state/institutions ::state/access-control-lists]}
+  [model
    {:keys [gateway-config-yaml work-dir pipeline]}]
   (let [opts               {:work-dir work-dir}
         {:keys [version
                 contents]} (checkout-yaml gateway-config-yaml opts)
-        new-contents       (cond-> contents
-                             institutions
-                             (assoc-in [:serviceEndpoints] institutions)
-
-                             access-control-lists
-                             (klist/update-in [:pipelines (keyword pipeline) :policies :gatekeeper]
-                                              klist/assoc-in [:action :acls]
-                                              (acls->gatekeeper-acls access-control-lists))
-
-                             applications
-                             (klist/update-in [:pipelines (keyword pipeline) :policies :gatekeeper]
-                                              klist/assoc-in [:action :apps] applications))]
-        (versioning/stage! gateway-config-yaml version
-                           (yaml/generate-string new-contents)
-                           opts)))
+        new-contents       (gateway-config/model->yaml model contents pipeline)]
+    (versioning/stage! gateway-config-yaml version
+                       (yaml/generate-string new-contents)
+                       opts)))
 
 (defn- commit!
   [{:keys [gateway-config-yaml work-dir]}]
@@ -188,9 +116,10 @@
     [:div.commit-status
      "Configuration error? No value for " ::last-commit "."]))
 
+;; TODO: this function is doing too much. Extract the handling of `model` and `conn`?
 (defn wrap
   "Middleware to allow reading and writing configuration."
-  [app {:keys [gateway-config-yaml work-dir] :as config}]
+  [app {:keys [gateway-config-yaml work-dir read-only?] :as config}]
   (fn [{:keys                                            [request-method uri]
         {:strs [commit reset timestamp current-version]} :params
         :as                                              req}]
@@ -217,12 +146,18 @@
                                   {:work-dir work-dir})
              {:flash (str "Discarded changes — reset to version of " (html-time/human-time timestamp))}
              {:flash "Reset failed!"}))))
-      (let [cur (fetch config)
+      (let [{:keys [model conn] :as cur} (fetch config)
             res (-> req
-                    (into cur)
+                    ;; only provide read-only model - transactions
+                    ;; should be put on the response
+                    (into (dissoc cur :conn))
                     (assoc ::last-commit (last-commit config))
-                    app)
-            new (select-keys res [::state/applications ::state/institutions ::state/access-control-lists])]
-        (when (seq new)
-          (put new config))
+                    app)]
+        (when-not read-only?
+          (when-let [tx (::model/tx res)]
+            (d/transact! conn tx))
+          (let [new-model @conn]
+            (when (and (seq new-model)
+                       (not= new-model model))
+              (put new-model config))))
         res))))

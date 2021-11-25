@@ -69,7 +69,7 @@
   [s {:keys [existing?]}]
   (let [d (io/file s)]
     (when (and existing? (not (.isDirectory d)))
-      [nil (format "'%s' is not a directory" d)]
+      [nil (format "'%s' is not a directory" s)]
       [d])))
 
 (defn mk-config

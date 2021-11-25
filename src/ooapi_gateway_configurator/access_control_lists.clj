@@ -16,81 +16,95 @@
 (ns ooapi-gateway-configurator.access-control-lists
   (:require [clojure.set :as set]
             [compojure.core :refer [defroutes GET POST routes]]
+            [datascript.core :as d]
             [hiccup.element :refer [javascript-tag]]
             [hiccup.util :refer [escape-html]]
             [ooapi-gateway-configurator.form :as form]
             [ooapi-gateway-configurator.html :refer [layout not-found]]
-            [ooapi-gateway-configurator.state :as state]
+            [ooapi-gateway-configurator.model :as model]
             [ring.util.codec :refer [url-encode]]
             [ring.util.response :refer [redirect]]))
 
 (defn- subtitle [context id] (str "'" id "' " (name context) " ACL"))
 
-(defn- ->form
+(defn- ->params
   "From access-control-list to form params."
   [access-control-list id]
-  {"id"                  (name id)
-   "access-control-list" (reduce-kv (fn [m k v] (assoc m k (set v)))
-                                    {}
-                                    access-control-list)})
+  (if (:access/_app access-control-list)
+    {"id"                  (name id)
+     ;; map of institution or app id to paths
+     "access-control-list" (->> access-control-list
+                                ;; Access entity refers to app, so
+                                ;; since we start at app we need a
+                                ;; reverse lookup, and get _ keys.
+                                ;;
+                                ;; See also
+                                ;; https://docs.datomic.com/on-prem/query/pull.html#reverse-lookup
+                                :access/_app
+                                (reduce (fn [m {:access/keys [institution paths]}]
+                                          (assoc m (:institution/id institution) (set (map :path/spec paths))))
+                                        {}))}
+    {"id"                  (name id)
+     ;; map of institution or app id to paths
+     "access-control-list" (->> access-control-list
+                                ;; Access entity refers to
+                                ;; institution, so since we start at
+                                ;; institution we need a reverse
+                                ;; lookup and get _ keys.
+                                :access/_institution
+                                (reduce (fn [m {:access/keys [app paths]}]
+                                          (assoc m (:app/id app) (set (map :path/spec paths))))
+                                        {}))}))
 
-(defn- form->
-  "From params into an access-control-list.  Ensure all members are
-  represented."
-  [{:strs [access-control-list]} access-control-lists]
-  (reduce (fn [m member-id] (update m member-id set))
-          access-control-list
-          ;; take first of all acls as a template for "all members"
-          (->> access-control-lists first val keys)))
+(defn- form [context {:strs [access-control-list]} api-paths ids]
+  (for [id (sort ids)]
+    (let [paths (set (get access-control-list id #{}))]
+      [:div.member {:id (str "member-" id)}
+       [:h3 [:a {:href (str ({:application "/institutions/"
+                              :institution "/applications/"} context) id)}
+             (escape-html id)]]
+       [:div.secondary-actions
+        [:input {:type  "submit", :class "secondary"
+                 :name  (str "select-all-" id)
+                 :value "Select all"}]
+        " "
+        [:input {:type  "submit", :class "secondary"
+                 :name  (str "select-none-" id)
+                 :value "Select none"}]]
 
-(defn- form [context {:strs [access-control-list]} api-paths]
-  (for [[id paths] (sort-by key access-control-list)]
-    [:div.member {:id (str "member-" id)}
-     [:h3 [:a {:href (str ({:application "/institutions/"
-                            :institution "/applications/"} context) id)}
-           (escape-html id)]]
-     [:div.secondary-actions
-      [:input {:type  "submit", :class "secondary"
-               :name  (str "select-all-" id)
-               :value "Select all"}]
-      " "
-      [:input {:type  "submit", :class "secondary"
-               :name  (str "select-none-" id)
-               :value "Select none"}]]
+       (for [path (sort paths)]
+         [:label.path
+          [:input {:type    "checkbox"
+                   :name    (str "access-control-list[" id "][]")
+                   :value   path
+                   :checked true}]
+          (escape-html path)])
 
-     (for [path (sort paths)]
-       [:label.path
-        [:input {:type    "checkbox"
-                 :name    (str "access-control-list[" id "][]")
-                 :value   path
-                 :checked true}]
-        (escape-html path)])
-
-     (when-let [unselected-paths (-> api-paths (set/difference paths) (sort) (seq))]
-       [:div.unselected
-        [:button {:id      (str "ut-" id)
-                  :type    "button", :class "secondary"
-                  :style   "display:none"
-                  ;; note: id will not contain characters which need quoting
-                  :onclick (str "document.getElementById('ut-" id "').style.display = 'none';"
-                                "document.getElementById('up-" id "').style.display = 'inherit';")}
-         "More.."]
-        [:div.paths {:id (str "up-" id)}
-         (for [path unselected-paths]
-           [:label.path
-            [:input {:type    "checkbox"
-                     :name    (str "access-control-list[" id "][]")
-                     :value   path
-                     :checked false}]
-            (escape-html path)])]
-        (javascript-tag
-         ;; note: id will not contain characters which need quoting
-         (str "document.getElementById('ut-" id "').style.display = 'inherit';"
-              "document.getElementById('up-" id "').style.display = 'none';"))])]))
+       (when-let [unselected-paths (-> api-paths (set/difference paths) (sort) (seq))]
+         [:div.unselected
+          [:button {:id      (str "ut-" id)
+                    :type    "button", :class "secondary"
+                    :style   "display:none"
+                    ;; note: id will not contain characters which need quoting
+                    :onclick (str "document.getElementById('ut-" id "').style.display = 'none';"
+                                  "document.getElementById('up-" id "').style.display = 'inherit';")}
+           "More.."]
+          [:div.paths {:id (str "up-" id)}
+           (for [path unselected-paths]
+             [:label.path
+              [:input {:type    "checkbox"
+                       :name    (str "access-control-list[" id "][]")
+                       :value   path
+                       :checked false}]
+              (escape-html path)])]
+          (javascript-tag
+           ;; note: id will not contain characters which need quoting
+           (str "document.getElementById('ut-" id "').style.display = 'inherit';"
+                "document.getElementById('up-" id "').style.display = 'none';"))])])))
 
 (defn- detail-page
   "Access control list detail hiccup."
-  [{:strs [id] :as access-control-list} context api-paths & {:keys [scroll-to dirty]}]
+  [{:strs [id] :as access-control-list} context api-paths ids & {:keys [scroll-to dirty]}]
   [:div.detail
    [:nav
     [:a {:href "/"} "⌂"]
@@ -110,7 +124,7 @@
       dirty (assoc :data-dirty "true"))
     [:input {:type "submit", :style "display: none"}] ;; ensure enter key submits
 
-    (into [:div] (form context access-control-list api-paths))
+    (into [:div] (form context access-control-list api-paths ids))
 
     [:div.actions
      [:button {:type "submit", :class "primary"} "Update"]
@@ -122,11 +136,11 @@
 
 (defn- do-update
   "Handle update request."
-  [{:keys        [params ::state/api-paths ::context]
+  [{:keys        [params model ::context]
     {:keys [id]} :params
-    :as          req}
-   access-control-lists]
-  (let [select-all          (->> (dissoc params :id)
+    :as          req}]
+  (let [api-paths           (model/api-paths model)
+        select-all          (->> (dissoc params :id)
                                  keys
                                  (keep #(last (re-find #"select-all-(.*)" %)))
                                  first)
@@ -134,76 +148,105 @@
                                  keys
                                  (keep #(last (re-find #"select-none-(.*)" %)))
                                  first)
-        access-control-list (form-> params access-control-lists)]
+        ids (case context
+              :application (model/institution-ids model)
+              :institution (model/app-ids model))]
     (cond
       select-all
-      (-> access-control-list
-          (->form id)
+      (-> params
+          (assoc "id" id)
           (assoc-in ["access-control-list" select-all] api-paths)
-          (detail-page context api-paths :scroll-to (str "member-" select-all) :dirty true)
+          (detail-page context api-paths ids :scroll-to (str "member-" select-all) :dirty true)
           (layout req (subtitle context id)))
 
       select-none
-      (-> access-control-list
-          (->form id)
+      (-> params
+          (assoc "id" id)
           (assoc-in ["access-control-list" select-none] #{})
-          (detail-page context api-paths :scroll-to (str "member-" select-none) :dirty true)
+          (detail-page context api-paths ids :scroll-to (str "member-" select-none) :dirty true)
           (layout req (subtitle context id)))
 
       :else
       (-> (str "../" (url-encode id))
           (redirect :see-other)
-          (assoc ::state/command
-                 [({:application ::state/update-access-control-list-for-application
-                    :institution ::state/update-access-control-list-for-institution} context)
-                  id access-control-list])
+          (assoc ::model/tx (case context
+                              :application
+                              (mapcat (fn [institution]
+                                        (model/set-paths model
+                                                         :app-id id :institution-id institution
+                                                         :paths (get-in params ["access-control-list" institution])))
+                                      (model/institution-ids model))
+
+                              :institution
+                              (mapcat (fn [app]
+                                        (model/set-paths model
+                                                         :app-id app :institution-id id
+                                                         :paths (get-in params ["access-control-list" app])))
+                                      (model/app-ids model))))
           (assoc :flash (str "Updated access-control-list for " (name context) " '" id "'"))))))
 
 (defroutes applications-handler
-  (GET "/applications/:id/access-control-list" {:keys        [::context
-                                                              ::state/access-control-lists
-                                                              ::state/api-paths]
+  (GET "/applications/:id/access-control-list" {:keys        [::context model]
                                                 {:keys [id]} :params
                                                 :as          req}
-       (if-let [access-control-list (get access-control-lists id)]
-         (-> access-control-list
-             (->form id)
-             (detail-page context api-paths)
-             (layout req (subtitle context id)))
-         (not-found (str "Application '" id "' not found..")
-                    req)))
+    (if-let [app (d/pull model
+                         ;; We explicitly pull in :app/id, otherwise
+                         ;; if no access entities are available we get
+                         ;; no attributes at all, and pull returns
+                         ;; nil.
+                         '[:app/id
+                           ;; Member :access/_app is a reverse
+                           ;; lookup. See also
+                           ;; https://docs.datomic.com/on-prem/query/pull.html#reverse-lookup
+                           {:access/_app [{:access/institution [:institution/id]
+                                           :access/paths [:path/spec]}]}]
+                         [:app/id id])]
+      (-> app
+          (->params id)
+          (detail-page context (model/api-paths model) (model/institution-ids model))
+          (layout req (subtitle context id)))
+      (not-found (str "Application '" id "' not found..")
+                 req)))
 
-  (POST "/applications/:id/access-control-list" {:keys        [::state/access-control-lists]
+  (POST "/applications/:id/access-control-list" {:keys        [model]
                                                  {:keys [id]} :params
                                                  :as          req}
-        (if (get access-control-lists id)
-          (do-update req access-control-lists)
-          (not-found (str "Application '" id "' not found..")
-                     req))))
+    (if (d/entid model [:app/id id])
+      (do-update req)
+      (not-found (str "Application '" id "' not found..")
+                 req))))
 
 (defroutes institutions-handler
-  (GET "/institutions/:id/access-control-list" {:keys        [::context
-                                                              ::state/access-control-lists
-                                                              ::state/api-paths]
+  (GET "/institutions/:id/access-control-list" {:keys        [::context model]
                                                 {:keys [id]} :params
                                                 :as          req}
-       (let [access-control-lists (state/invert-access-control-lists access-control-lists)]
-         (if-let [access-control-list (get access-control-lists id)]
-           (-> access-control-list
-               (->form id)
-               (detail-page context api-paths)
-               (layout req (subtitle context id)))
-           (not-found (str "Institution '" id "' not found..")
-                      req))))
+    (if-let [institution
+             (d/pull model
+                     ;; We explicitly pull in :institution/id,
+                     ;; otherwise if no access entities are available
+                     ;; we get no attributes at all, and pull returns
+                     ;; nil.
+                     '[:institution/id
+                       ;; Member :access/_institution is a reverse
+                       ;; lookup. See also
+                       ;; https://docs.datomic.com/on-prem/query/pull.html#reverse-lookup
+                       {:access/_institution [{:access/app [:app/id]}
+                                              {:access/paths [:path/spec]}]}]
+                     [:institution/id id])]
+      (-> institution
+          (->params id)
+          (detail-page context (model/api-paths model) (model/app-ids model))
+          (layout req (subtitle context id)))
+      (not-found (str "Institution '" id "' not found..")
+                 req)))
 
-  (POST "/institutions/:id/access-control-list" {:keys        [::state/access-control-lists]
+  (POST "/institutions/:id/access-control-list" {:keys        [model]
                                                  {:keys [id]} :params
                                                  :as          req}
-        (let [access-control-lists (state/invert-access-control-lists access-control-lists)]
-          (if (get access-control-lists id)
-            (do-update req access-control-lists)
-            (not-found (str "Institution '" id "' not found..")
-                       req)))))
+    (if (d/entid model [:institution/id id])
+      (do-update req)
+      (not-found (str "Institution '" id "' not found..")
+                 req))))
 
 (def handler
   (routes

@@ -19,10 +19,11 @@
             :url  "https://www.gnu.org/licenses/gpl-3.0.en.html"}
   :url "https://github.com/SURFnet/ooapi-gateway-configurator"
 
-  :dependencies [[cheshire "5.10.1"]
-                 [ch.qos.logback/logback-classic "1.2.5"]
+  :dependencies [[ch.qos.logback/logback-classic "1.2.5"]
+                 [cheshire "5.10.1"]
                  [clj-commons/clj-yaml "0.7.107"]
                  [compojure "1.6.2"]
+                 [datascript "1.2.10"]
                  [environ "1.2.0"]
                  [hiccup "1.0.5"]
                  [nl.jomco/envopts "0.0.4"]
@@ -42,10 +43,10 @@
   :profiles {:uberjar {:aot          :all
                        :uberjar-name "ooapi-gateway-configurator.jar"}
              :dev     {:source-paths ["dev"]
-                       :dependencies [[org.clojure/tools.namespace "1.1.0"]
-                                      [clj-kondo "2021.08.03"]
-                                      [ring/ring-mock "0.4.0"]
-                                      [ring/ring-json "0.5.1"]]
+                       :dependencies [[clj-kondo "2021.10.19"]
+                                      [org.clojure/tools.namespace "1.1.0"]
+                                      [ring/ring-json "0.5.1"]
+                                      [ring/ring-mock "0.4.0"]]
                        :plugins      [[lein-kibit "0.1.8"]]
                        :aliases      {"lint" ["do"
                                               ["run" "-m" "clj-kondo.main" "--lint" "src"]

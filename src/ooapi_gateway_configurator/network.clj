@@ -17,37 +17,37 @@
   (:require [clojure.data.json :as json]
             [clojure.string :as s]
             [compojure.core :refer [defroutes GET]]
+            [datascript.core :as d]
             [ooapi-gateway-configurator.html :refer [layout]]
-            [ooapi-gateway-configurator.state :as state]
+            [ooapi-gateway-configurator.model :as model]
             [ring.util.response :as response]))
 
 (def app-node {:shape "box", :color "#ffaaaa"})
 (def ins-node {:shape "ellipse", :color "#aaffaa"})
 
-(defn ->nodes-edges [{:keys [::state/applications
-                             ::state/institutions
-                             ::state/access-control-lists]}]
+(defn ->nodes-edges [{:keys [model]}]
   [;; nodes
-   (into (->> applications
-              keys
-              (map (fn [id] (into app-node
-                                  {:id    (str "app-" id)
-                                   :label id
-                                   :url   (str "/applications/" id)}))))
-         (->> institutions
-              keys
-              (map (fn [id] (into ins-node
-                                  {:id    (str "ins-" id)
-                                   :label id
-                                   :url   (str "/institutions/" id)})))))
-   ;; edged
-   (reduce (fn [m [app acl]]
-             (into m (->> acl
-                          (filter #(-> % val seq))
-                          (map #(hash-map :from (str "app-" app)
-                                          :to (str "ins-" (key %)))))))
-           []
-           access-control-lists)])
+   (into (map (fn [id] (into app-node
+                             {:id    (str "app-" id)
+                              :label id
+                              :url   (str "/applications/" id)}))
+              (model/app-ids model))
+         (map (fn [id] (into ins-node
+                             {:id    (str "ins-" id)
+                              :label id
+                              :url   (str "/institutions/" id)}))
+              (model/institution-ids model)))
+   ;; edges
+   (map (fn [[app institution]]
+          {:from (str "app-" app)
+           :to (str "ins-" institution)})
+        (d/q '[:find ?a ?e :where
+               [?eid :institution/id ?e]
+               [?aid :app/id ?a]
+               [?xs :access/paths _] ;; access entity must have paths to count
+               [?xs :access/app ?aid]
+               [?xs :access/institution ?eid]]
+             model))])
 
 (defn ->dot [[nodes edges]]
   (str "graph network {\n"
@@ -60,7 +60,7 @@
             (s/join "\n"))
        "\n\n"
        (->> edges
-            (map #(str "  "(pr-str (:from %)) " -- " (pr-str (:to %)) ";"))
+            (map #(str "  " (pr-str (:from %)) " -- " (pr-str (:to %)) ";"))
             (s/join "\n"))
        "\n}\n"))
 
@@ -117,15 +117,15 @@
 
 (defroutes handler
   (GET "/network/" req
-       (-> req
-           (->nodes-edges)
-           (network-page)
-           (layout req "Network")))
+    (-> req
+        (->nodes-edges)
+        (network-page)
+        (layout req "Network")))
   (GET "/network.dot" req
-       (-> req
-           (->nodes-edges)
-           (->dot)
-           (response/response)
-           (response/content-type "text/x-graphviz")
-           (assoc-in [:headers "Content-Disposition"]
-                     "attachment; filename=\"network.dot\""))))
+    (-> req
+        (->nodes-edges)
+        (->dot)
+        (response/response)
+        (response/content-type "text/x-graphviz")
+        (assoc-in [:headers "Content-Disposition"]
+                  "attachment; filename=\"network.dot\""))))

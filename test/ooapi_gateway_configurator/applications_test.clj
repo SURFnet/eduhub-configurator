@@ -14,10 +14,10 @@
 ;; with this program. If not, see http://www.gnu.org/licenses/.
 
 (ns ooapi-gateway-configurator.applications-test
-  (:require [clojure.test :refer :all]
+  (:require [clojure.test :refer [deftest is testing use-fixtures]]
             [ooapi-gateway-configurator.applications :as applications]
             [ooapi-gateway-configurator.http :as http]
-            [ooapi-gateway-configurator.state :as state]
+            [ooapi-gateway-configurator.model :as model]
             [ooapi-gateway-configurator.store-test :as store-test]
             [ring.mock.request :refer [request]]))
 
@@ -26,7 +26,7 @@
 (use-fixtures :each
   (fn [f]
     (let [state (store-test/setup)]
-      (binding [*app* (store-test/wrap applications/handler state)]
+      (binding [*app* (store-test/wrap applications/handler (assoc state :read-only? true))]
         (f))
       (store-test/teardown state))))
 
@@ -73,9 +73,7 @@
           "redirected back to applications list")
       (is (:flash res)
           "has a message about deletion")
-      (is (= [::state/delete-application "fred"]
-             (-> res ::state/command))
-          "has delete-application command for fred"))))
+      (is (= :db/retractEntity (-> res ::model/tx ffirst))))))
 
 (deftest update-application
   (testing "POST /applications/fred"
@@ -90,9 +88,10 @@
           "redirected back to applications list")
       (is (:flash res)
           "has a message about update")
-      (is (= [::state/update-application "fred" {:id "betty"}]
-             (-> res ::state/command))
-          "has update-application command for fred")))
+      (is (= :db/add (-> res ::model/tx first first))
+          "rename")
+      (is (= #:app {:id "betty"} (-> res ::model/tx last))
+          "update entity")))
 
   (testing "errors"
     (let [res (do-post "/applications/fred"
@@ -131,11 +130,10 @@
           "redirected back to applications list")
       (is (:flash res)
           "has a message about creation")
-      (is (= ::state/create-application (-> res ::state/command first))
-          "has create-application command")
-      (is (and (-> res ::state/command last :passwordSalt)
-               (-> res ::state/command last :passwordHash))
-          "got password stuff"))))
+
+      (is (= "test"
+             (-> res ::model/tx first :app/id))
+          "created entity"))))
 
 (deftest hash-password
   (is (= "083aa7e8c594c639ca378dce248174d5e74bb6d64ad695ccb69ebda1d7278cf6"

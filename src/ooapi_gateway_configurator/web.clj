@@ -22,9 +22,8 @@
             [ooapi-gateway-configurator.auth-pages :as auth-pages]
             [ooapi-gateway-configurator.html :refer [layout not-found]]
             [ooapi-gateway-configurator.institutions :as institutions]
-            [ooapi-gateway-configurator.state :as state]
-            [ooapi-gateway-configurator.store :as store]
             [ooapi-gateway-configurator.network :as network]
+            [ooapi-gateway-configurator.store :as store]
             [ring.middleware.defaults :refer [site-defaults wrap-defaults]]))
 
 (defn main-page
@@ -46,10 +45,10 @@
   (routes
    (wrap-routes
     (routes (GET "/" req (layout (main-page req) req))
-            applications/handler
-            institutions/handler
-            access-control-lists/handler
-            network/handler)
+            #'applications/handler
+            #'institutions/handler
+            #'access-control-lists/handler
+            #'network/handler)
     auth/wrap-member-of (get-in config [:auth :group-ids]))
    auth/logout-handler
    (resources "/" {:root "public"})
@@ -60,7 +59,6 @@
   (-> config
       (mk-handler)
 
-      (state/wrap)
       (store/wrap (:store config))
 
       (auth-pages/wrap-auth-pages)
