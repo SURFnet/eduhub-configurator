@@ -66,8 +66,9 @@
              (model/institution-ids model)))
 
       (testing "shape"
-        (is (= #:institution {:url          "https://example.com/test-backend"
-                              :proxy-options {:auth "fred:wilma"}}
+        (is (= #:institution {:url           "https://example.com/test-backend"
+                              :proxy-options {:auth         "fred:wilma"
+                                              :proxyTimeout 31415}}
                (d/pull model
                        '[:institution/url :institution/proxy-options]
                        [:institution/id "Basic.Auth.Backend"])))))

@@ -56,10 +56,12 @@
           "OK")
       (is (re-find #"Edit Institution" (:body res))
           "includes header")
-      (is (re-find #"Basic.Auth.Backend" (:body res))
-          "includes institution ID")
-      (is (re-find #"https://example.com/test-backend" (:body res))
-          "include institution URL"))))
+      (doseq [[name value] {"id"            "Basic.Auth.Backend"
+                            "url"           "https://example.com/test-backend"
+                            "proxy-timeout" "31415"}]
+        (is (re-find (re-pattern (str "name=\"" name "\"[^>]+value=\"" value "\""))
+                     (:body res))
+            (str "includes form field with value for institution " name))))))
 
 (deftest delete-institution
   (testing "DELETE /institutions/Basic.Auth.Backend"

@@ -33,15 +33,18 @@
 
 (defn- ->params
   "Transform an institution into form parameters."
-  [{url :institution/url
-    id :institution/id
-    {:keys [auth headers oauth2]} :institution/proxy-options}]
+  [{:institution/keys      [url id]
+    {:keys [auth
+            headers
+            oauth2
+            proxyTimeout]} :institution/proxy-options}]
   (cond-> {"id"            id
            "url"           url
            "auth"          (cond auth   "basic"
                                  oauth2 "oauth")
            "header-names"  (map as-str (keys headers)) ;; yaml parse may keyword keys
-           "header-values" (vals headers)}
+           "header-values" (vals headers)
+           "proxy-timeout" (str proxyTimeout)}
     auth   (assoc "basic-auth-user" (first (s/split auth #":" 2))
                   "basic-auth-pass" (last (s/split auth #":" 2)))
     oauth2 (assoc "oauth-url" (-> oauth2 :clientCredentials :tokenEndpoint :url)
@@ -56,9 +59,7 @@
   proxy-options) because otherwise datascript will leave it untouched
   when empty (and thus unset).  This problem should be handled
   elsewhere."
-  [{:strs [id
-           url
-           auth
+  [{:strs [id url auth proxy-timeout
            basic-auth-user basic-auth-pass
            oauth-url oauth-client-id oauth-client-secret oauth-scope
            header-names header-values]}]
@@ -82,7 +83,10 @@
                (assoc :headers
                       (-> header-names
                           (zipmap header-values)
-                          (dissoc ""))))]
+                          (dissoc "")))
+
+               (seq proxy-timeout)
+               (assoc :proxyTimeout (Long/parseLong proxy-timeout)))]
     #:institution {:id            id
                    :url           url
                    :proxy-options opts}))
@@ -97,7 +101,7 @@
 (def id-pattern-message "only a-z, A-Z, 0-9, . and - characters allowed")
 
 (defn- params-errors
-  [{:strs [id url auth
+  [{:strs [id url auth proxy-timeout
            header-names header-values
            basic-auth-user basic-auth-pass
            oauth-url oauth-client-id oauth-client-secret]}]
@@ -116,6 +120,9 @@
 
     (and (not (s/blank? url)) (not (valid-http-url? url)))
     (conj "URL not a HTTP URL")
+
+    (and (not (s/blank? proxy-timeout)) (not (re-matches #"\d+" proxy-timeout)))
+    (conj "Timeout not a positive whole number")
 
     (and (= "basic" auth) (s/blank? basic-auth-user))
     (conj "Basic Authentication User can not be blank")
@@ -153,7 +160,7 @@
 
 (defn- form
   "Form hiccup for institution params."
-  [{:strs [id url auth
+  [{:strs [id url auth proxy-timeout
            header-names header-values
            basic-auth-user basic-auth-pass
            oauth-url oauth-client-id oauth-client-secret oauth-scope]}]
@@ -167,6 +174,12 @@
     [:label {:for "url"} "URL"]
     [:input {:type "url", :pattern "https?://.*", :required true
              :id   "url", :name    "url",         :value    url}]]
+
+   [:div.field
+    [:label {:for "proxy-timeout"} "Timeout "
+     [:span.info "in milliseconds"]]
+    [:input {:type "number", :step "1"
+             :id   "proxy-timeout", :name "proxy-timeout", :value proxy-timeout}]]
 
    [:div.field
     [:label "Headers"]

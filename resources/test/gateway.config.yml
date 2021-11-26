@@ -52,6 +52,7 @@ serviceEndpoints:
     url: https://example.com/test-backend
     proxyOptions:
       auth: fred:wilma
+      proxyTimeout: 31415
   Oauth-2.Backend:
     url: https://example.com/other-test-backend
     proxyOptions:
