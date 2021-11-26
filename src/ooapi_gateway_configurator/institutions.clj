@@ -33,13 +33,14 @@
 
 (defn- ->params
   "Transform an institution into form parameters."
-  [{:institution/keys      [url id]
+  [{:institution/keys      [url id notes]
     {:keys [auth
             headers
             oauth2
             proxyTimeout]} :institution/proxy-options}]
   (cond-> {"id"            id
            "url"           url
+           "notes"         notes
            "auth"          (cond auth   "basic"
                                  oauth2 "oauth")
            "header-names"  (map as-str (keys headers)) ;; yaml parse may keyword keys
@@ -59,7 +60,7 @@
   proxy-options) because otherwise datascript will leave it untouched
   when empty (and thus unset).  This problem should be handled
   elsewhere."
-  [{:strs [id url auth proxy-timeout
+  [{:strs [id url notes auth proxy-timeout
            basic-auth-user basic-auth-pass
            oauth-url oauth-client-id oauth-client-secret oauth-scope
            header-names header-values]}]
@@ -89,6 +90,7 @@
                (assoc :proxyTimeout (Long/parseLong proxy-timeout)))]
     #:institution {:id            id
                    :url           url
+                   :notes         notes
                    :proxy-options opts}))
 
 (defn- valid-http-url? [s]
@@ -163,7 +165,8 @@
   [{:strs [id url auth proxy-timeout
            header-names header-values
            basic-auth-user basic-auth-pass
-           oauth-url oauth-client-id oauth-client-secret oauth-scope]}]
+           oauth-url oauth-client-id oauth-client-secret oauth-scope
+           notes]}]
   [[:div.field
     [:label {:for "id"} "ID "
      [:span.info (escape-html id-pattern-message)]]
@@ -241,7 +244,13 @@
       [:div.field
        [:label {:for "oauth-scope"} "Scope"]
        [:input {:type "text"
-                :name "oauth-scope", :value oauth-scope}]]])])
+                :name "oauth-scope", :value oauth-scope}]]])
+
+   [:div.field
+    [:label {:for "notes"} "Notes "
+     [:span.info "contact or other information about this service endpoint"]]
+    [:textarea {:name "notes", :rows 4}
+     (escape-html notes)]]])
 
 (defn- index-page
   "List of institution hiccup."

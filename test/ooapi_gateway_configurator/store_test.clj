@@ -67,10 +67,11 @@
 
       (testing "shape"
         (is (= #:institution {:url           "https://example.com/test-backend"
+                              :notes         "Fred <3 Wilma"
                               :proxy-options {:auth         "fred:wilma"
                                               :proxyTimeout 31415}}
                (d/pull model
-                       '[:institution/url :institution/proxy-options]
+                       '[:institution/url :institution/notes :institution/proxy-options]
                        [:institution/id "Basic.Auth.Backend"])))))
 
     (testing "access-control-lists"

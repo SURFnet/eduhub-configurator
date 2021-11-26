@@ -50,6 +50,7 @@ apiEndpoints:
 serviceEndpoints:
   Basic.Auth.Backend:
     url: https://example.com/test-backend
+    notes: 'Fred <3 Wilma'
     proxyOptions:
       auth: fred:wilma
       proxyTimeout: 31415

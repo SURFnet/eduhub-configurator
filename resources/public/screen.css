@@ -124,7 +124,8 @@ label {
 input {
     width: calc(100% - 1.5rem);
     font-size: 1rem;
-    line-height: 2rem;
+    line-height: 1rem;
+    padding: .5rem;
 }
 input[type=checkbox],
 input[type=radio] {
@@ -133,7 +134,15 @@ input[type=radio] {
 }
 select, option {
     font-size: 1rem;
+    padding: 0 .5rem;
     height: 2rem;
+}
+textarea {
+    width: calc(100% - 2rem);
+    font-size: 1rem;
+    line-height: 1.2rem;
+    padding: .5rem;
+    resize: vertical;
 }
 input[type=submit] {
     width: inherit;

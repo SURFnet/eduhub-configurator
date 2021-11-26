@@ -35,11 +35,12 @@
                       :app/password-salt passwordSalt
                       :app/password-hash passwordHash})
                    (klist/get-in policies [:gatekeeper :action :apps])))
-        (into (map (fn [[n {:keys [proxyOptions url]}]]
+        (into (map (fn [[n {:keys [proxyOptions url notes]}]]
                      (cond-> {:institution/id (name n) ;; name is a keyword when read from the yaml
                               :institution/url url}
-                       (some? proxyOptions) ;; datomic/datascript do not allow nil values
-                       (assoc :institution/proxy-options proxyOptions)))
+                       ;; datomic/datascript do not allow nil values
+                       (seq notes) (assoc :institution/notes notes)
+                       (some? proxyOptions) (assoc :institution/proxy-options proxyOptions)))
                    serviceEndpoints))
         (into (mapcat (fn [{:keys [app endpoints]}]
                         (map (fn [{:keys [endpoint paths]}]
@@ -55,10 +56,12 @@
   [model yaml-contents pipeline]
   (-> yaml-contents
       (assoc :serviceEndpoints
-             (reduce (fn ->endpoint [res [{:institution/keys [id url proxy-options]}]]
+             (reduce (fn ->endpoint [res [{:institution/keys [id url notes proxy-options]}]]
                        (assert (not (string/blank? id)))
-                       (assoc res id {:url          url
-                                      :proxyOptions proxy-options}))
+                       (assoc res id (cond-> {:url          url
+                                              :proxyOptions proxy-options}
+                                       (seq notes)
+                                       (assoc :notes notes))))
                      {}
                      (d/q '[:find (pull ?e [*]) :where [?e :institution/id _]] model)))
 

@@ -61,7 +61,10 @@
                             "proxy-timeout" "31415"}]
         (is (re-find (re-pattern (str "name=\"" name "\"[^>]+value=\"" value "\""))
                      (:body res))
-            (str "includes form field with value for institution " name))))))
+            (str "includes form field with value for institution " name)))
+      (is (re-find #"<textarea[^>]+name=\"notes\"[^>]*>Fred &lt;3 Wilma"
+                   (:body res))
+          "includes form file with notes for institution"))))
 
 (deftest delete-institution
   (testing "DELETE /institutions/Basic.Auth.Backend"
@@ -167,10 +170,11 @@
           "has a message about update")
       (is (= :db/add (-> res ::model/tx first first))
           "rename entity")
-      (is (= #:institution{:id          "test"
-                        :url           "https://example.com/test"
-                        :proxy-options {:auth    "fred:betty"
-                                        :headers {"X-test" "1", "X-other" "2"}}}
+      (is (= #:institution{:id            "test"
+                           :url           "https://example.com/test"
+                           :notes         nil
+                           :proxy-options {:auth    "fred:betty"
+                                           :headers {"X-test" "1", "X-other" "2"}}}
              (-> res ::model/tx last))
           "updates Basic.Auth.Backend")))
 
@@ -220,17 +224,18 @@
           "redirected back to institutions list")
       (is (:flash res)
           "has a message about creation")
-            (is (= #:institution{:proxy-options
-                        {:oauth2
-                         {:clientCredentials
-                          {:tokenEndpoint
-                           {:url "https://oauth/test",
-                            :params
-                            {:grant_type "client_credentials",
-                             :client_id "fred",
-                             :client_secret "wilma"}}}}},
-                        :url "https://example.com/test",
-                        :id "test"}
+      (is (= #:institution{:id   "test"
+                           :url   "https://example.com/test"
+                           :notes nil
+                           :proxy-options
+                           {:oauth2
+                            {:clientCredentials
+                             {:tokenEndpoint
+                              {:url "https://oauth/test"
+                               :params
+                               {:grant_type    "client_credentials"
+                                :client_id     "fred"
+                                :client_secret "wilma"}}}}}}
              (-> res ::model/tx first))
           "will insert new institution")))
 
