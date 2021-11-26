@@ -50,7 +50,12 @@
                   "oauth-scope"  (-> oauth2 :clientCredentials :tokenEndpoint :params :scope))))
 
 (defn- params->
-  "Transform form parameters into an institution entity."
+  "Transform form parameters into an institution entity.
+
+  TODO: This function returns a full institution (including
+  proxy-options) because otherwise datascript will leave it untouched
+  when empty (and thus unset).  This problem should be handled
+  elsewhere."
   [{:strs [id
            url
            auth
@@ -78,9 +83,9 @@
                       (-> header-names
                           (zipmap header-values)
                           (dissoc ""))))]
-    (cond-> {:institution/id id, :institution/url url}
-      (seq opts)
-      (assoc :institution/proxy-options opts))))
+    #::institution {:id            id
+                    :url           url
+                    :proxy-options opts}))
 
 (defn- valid-http-url? [s]
   (try
