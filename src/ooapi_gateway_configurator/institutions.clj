@@ -83,9 +83,9 @@
                       (-> header-names
                           (zipmap header-values)
                           (dissoc ""))))]
-    #::institution {:id            id
-                    :url           url
-                    :proxy-options opts}))
+    #:institution {:id            id
+                   :url           url
+                   :proxy-options opts}))
 
 (defn- valid-http-url? [s]
   (try
