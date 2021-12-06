@@ -318,3 +318,7 @@ label.path, label.version {
     font-size: smaller;
     font-style: italic;
 }
+.error {
+    background-color: #a00;
+    color: white;
+}

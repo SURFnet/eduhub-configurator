@@ -20,6 +20,7 @@
             [ooapi-gateway-configurator.applications :as applications]
             [ooapi-gateway-configurator.auth :as auth]
             [ooapi-gateway-configurator.auth-pages :as auth-pages]
+            [ooapi-gateway-configurator.exceptions :as exceptions]
             [ooapi-gateway-configurator.html :refer [layout not-found]]
             [ooapi-gateway-configurator.institutions :as institutions]
             [ooapi-gateway-configurator.network :as network]
@@ -67,4 +68,5 @@
       (wrap-defaults (-> config
                          (get :site-defaults site-defaults)
                          (assoc-in [:params :keywordize] false)
-                         (assoc-in [:session :cookie-attrs :same-site] :lax)))))
+                         (assoc-in [:session :cookie-attrs :same-site] :lax)))
+      (exceptions/wrap-exception-logging)))

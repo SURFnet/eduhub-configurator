@@ -25,8 +25,8 @@
 
 (def title "OOAPI Gateway Configurator")
 
-(defn layout
-  [body {:keys [::store/uncommitted? flash] :as req} & [subtitle]]
+(defn bare-layout
+  [body-tag subtitle]
   (html5
    {:lang "en"}
    [:head
@@ -36,15 +36,28 @@
     [:link {:href "/screen.css" :rel "stylesheet"}]
     [:meta {:name "viewport", :content "width=device-width"}]
     [:script {:src "/unload.js"}]]
+   body-tag))
+
+(defn header
+  []
+  [:header
+   [:h1 [:a {:href "/"} (escape-html title)]]])
+
+(defn layout
+  [main-body {:keys [::store/uncommitted? flash] :as req} & [subtitle]]
+  (bare-layout
    [:body
-    [:header
-     [:h1 [:a {:href "/"} (escape-html title)]]
-     (auth/auth-component req)
-     (when flash
-       [:p.flash (escape-html flash)])
-     (when uncommitted?
-       [:a.uncommited {:href "/"} "pending changes"])]
-    [:main body]]))
+    (cond-> (header)
+      true
+      (conj (auth/auth-component req))
+
+      flash
+      (conj [:p.flash (escape-html flash)])
+
+      uncommitted?
+      (conj [:a.uncommited {:href "/"} "pending changes"]))
+    [:main main-body]]
+   subtitle))
 
 (defn not-found
   [msg req]
@@ -53,6 +66,17 @@
       (layout req)
       (render req)
       (status http/not-found)))
+
+(defn exception
+  [id req]
+  (-> [:body.error
+       (header)
+       [:main
+        [:h3 "Error ID " [:code (escape-html id)]]
+        [:p "An internal error occurred. The details have been logged with error id " [:code (escape-html id)] "."]]]
+      (bare-layout (str "Error ID " id))
+      (render req)
+      (status http/internal-server-error)))
 
 (defn confirm-js [action resource id]
   (str "return confirm("

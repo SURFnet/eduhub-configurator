@@ -37,8 +37,7 @@
   account (eduid or otherwise) or the \"SURFconext Test IdP\" and use
   one of the provided test accounts:
   https://idp.diy.surfconext.nl/showusers.php"
-  (:require [clojure.tools.logging :as log]
-            [compojure.core :refer [defroutes POST]]
+  (:require [compojure.core :refer [defroutes POST]]
             [compojure.response :refer [render]]
             [ooapi-gateway-configurator.form :as form]
             [ooapi-gateway-configurator.http :as status]
@@ -51,14 +50,8 @@
   authentication, show it and log a summary."
   [handler]
   (fn [{:keys [uri params] :as request}]
-    (if (and (= uri "/oauth2/conext/callback")
-             (:error params))
-      (do (log/error "OAuth2 error"
-                     (select-keys request [:uri :params]))
-          (-> "An error was received from the authentication service.\nThis is probably caused by a configuration error.\n\n"
-              (str (pr-str params))
-              (response/bad-request )
-              (response/content-type "text/plain")))
+    (if (and (= uri "/oauth2/conext/callback") (:error params))
+      (throw (ex-info "OAuth2 error from authentication service. This is probably caused by a configuration error." {:auth-error (:error params)}))
       (handler request))))
 
 (defn wrap-authentication
@@ -120,7 +113,7 @@
 
 (defroutes logout-handler
   (POST "/logout" _
-        (-> "/"
-            (response/redirect :see-other)
-            (assoc :session {}
-                   :flash "You are logged out"))))
+    (-> "/"
+        (response/redirect :see-other)
+        (assoc :session {}
+               :flash "You are logged out"))))
