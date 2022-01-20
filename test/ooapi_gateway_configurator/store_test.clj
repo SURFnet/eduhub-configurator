@@ -20,6 +20,7 @@
             [datascript.core :as d]
             [ooapi-gateway-configurator.model :as model]
             [ooapi-gateway-configurator.store :as store]
+            [ooapi-gateway-configurator.store.klist :as klist]
             [ring.middleware.defaults :refer [site-defaults wrap-defaults]])
   (:import java.io.File))
 
@@ -90,4 +91,36 @@
     (testing "round trip does not change the data in the gateway configuration"
       (#'store/put model *config*)
       (#'store/commit! *config*)
-      (is (= yaml (yaml/parse-string (slurp (:gateway-config-yaml *config*))))))))
+      (is (= yaml (yaml/parse-string (slurp (:gateway-config-yaml *config*)))))))
+
+  (let [{:keys [conn]} (#'store/fetch *config*)
+        get-acl (fn []
+                  (-> *config*
+                      :gateway-config-yaml
+                      slurp
+                      yaml/parse-string
+                      (klist/get-in [:pipelines :test :policies :gatekeeper :action :acls])
+                      first))]
+    (testing "empty ACL entries are skipped"
+      (is (= {:app "barney"
+              :endpoints [{:endpoint "Basic.Auth.Backend",
+                           :paths ["/" "/courses" "/courses/:courseId"]}
+                          {:endpoint "Oauth-2.Backend", :paths ["/"]}
+                          {:endpoint "Api.Key.Backend", :paths ["/"]}]}
+             (get-acl))
+          "ACL entry with paths")
+      ;; clear paths
+
+      (#'store/put (:db-after (d/transact! conn
+                                           (model/set-paths @conn
+                                                            :app-id "barney"
+                                                            :institution-id "Basic.Auth.Backend"
+                                                            :paths [])))
+                   *config*)
+      (#'store/commit! *config*)
+
+      (is (= {:app "barney"
+              :endpoints [{:endpoint "Oauth-2.Backend", :paths ["/"]}
+                          {:endpoint "Api.Key.Backend", :paths ["/"]}]}
+             (get-acl))
+          "ACL entry without paths removed"))))

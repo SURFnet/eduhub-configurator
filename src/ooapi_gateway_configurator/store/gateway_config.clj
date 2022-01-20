@@ -51,6 +51,21 @@
                              endpoints))
                       (klist/get-in policies [:gatekeeper :action :acls]))))))
 
+(defn- ->acl
+  "Create app + endpoints ACL map.
+
+  Skips endpoints without paths. If endpoints is empty returns nil."
+  [{app :app/id
+    access :access/_app}]
+  (when-let [endpoints (->> access
+                            (keep (fn ->acl-endpoint [xs]
+                                    (when (seq (:access/paths xs))
+                                      {:endpoint (:institution/id (:access/institution xs))
+                                       :paths    (map :path/spec (:access/paths xs))})))
+                            seq)]
+    {:app app
+     :endpoints endpoints}))
+
 (defn model->yaml
   "Update the gateway config `yaml-contents` with configuration from `model`."
   [model yaml-contents pipeline]
@@ -73,13 +88,7 @@
                                    :where [?a :app/id _]] model)
                             (map first) ;; results are tuples of one entity
                             (sort-by :app/id)
-                            (map (fn ->acl [{app :app/id
-                                             access :access/_app}]
-                                   {:app app
-                                    :endpoints (map (fn ->acl-endpoint [xs]
-                                                      {:endpoint (:institution/id (:access/institution xs))
-                                                       :paths    (map :path/spec (:access/paths xs))})
-                                                    access)}))))
+                            (keep ->acl)))
 
       (klist/update-in [:pipelines (keyword pipeline) :policies :gatekeeper]
                        klist/assoc-in [:action :apps]
