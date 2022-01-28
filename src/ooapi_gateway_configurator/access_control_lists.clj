@@ -1,4 +1,4 @@
-;; Copyright (C) 2021 SURFnet B.V.
+;; Copyright (C) 2021, 2022 SURFnet B.V.
 ;;
 ;; This program is free software: you can redistribute it and/or modify it
 ;; under the terms of the GNU General Public License as published by the Free
@@ -17,7 +17,6 @@
   (:require [clojure.set :as set]
             [compojure.core :refer [defroutes GET POST routes]]
             [datascript.core :as d]
-            [hiccup.element :refer [javascript-tag]]
             [hiccup.util :refer [escape-html]]
             [ooapi-gateway-configurator.form :as form]
             [ooapi-gateway-configurator.html :refer [layout not-found]]
@@ -82,25 +81,15 @@
 
        (when-let [unselected-paths (-> api-paths (set/difference paths) (sort) (seq))]
          [:div.unselected
-          [:button {:id      (str "ut-" id)
-                    :type    "button", :class "secondary"
-                    :style   "display:none"
-                    ;; note: id will not contain characters which need quoting
-                    :onclick (str "document.getElementById('ut-" id "').style.display = 'none';"
-                                  "document.getElementById('up-" id "').style.display = 'inherit';")}
-           "More.."]
-          [:div.paths {:id (str "up-" id)}
+          [:button.secondary.hidden {:type  "button"} "More.."]
+          [:div.paths
            (for [path unselected-paths]
              [:label.path
               [:input {:type    "checkbox"
                        :name    (str "access-control-list[" id "][]")
                        :value   path
                        :checked false}]
-              (escape-html path)])]
-          (javascript-tag
-           ;; note: id will not contain characters which need quoting
-           (str "document.getElementById('ut-" id "').style.display = 'inherit';"
-                "document.getElementById('up-" id "').style.display = 'none';"))])])))
+              (escape-html path)])]])])))
 
 (defn- detail-page
   "Access control list detail hiccup."
@@ -122,7 +111,7 @@
    (form/form
     (cond-> {:method "post"}
       dirty (assoc :data-dirty "true"))
-    [:input {:type "submit", :style "display: none"}] ;; ensure enter key submits
+    [:input.hidden {:type "submit"}] ;; ensure enter key submits
 
     (into [:div] (form context access-control-list api-paths ids))
 
@@ -131,8 +120,7 @@
      " "
      [:a {:href (str "../" (url-encode id)), :class "button"} "Cancel"]])
 
-   (when scroll-to
-     (javascript-tag (str "document.getElementById(" (pr-str scroll-to) ").scrollIntoView()")))])
+   [:script {:src "/access_control_lists.js", :data-scroll-to scroll-to}]])
 
 (defn- do-update
   "Handle update request."

@@ -1,4 +1,4 @@
-;; Copyright (C) 2021 SURFnet B.V.
+;; Copyright (C) 2021, 2022 SURFnet B.V.
 ;;
 ;; This program is free software: you can redistribute it and/or modify it
 ;; under the terms of the GNU General Public License as published by the Free
@@ -55,6 +55,17 @@
    (resources "/" {:root "public"})
    (fn [req] (not-found "Oeps, nothing here.." req))))
 
+(defn wrap-csp
+  "Middleware to set CSP header unless already set."
+  [handler default-value]
+  (fn [req]
+    (let [res (handler req)]
+      (update-in res [:headers "Content-Security-Policy"]
+                 (fn [value]
+                   (if value
+                     value
+                     default-value))))))
+
 (defn mk-app
   [config]
   (-> config
@@ -69,4 +80,9 @@
                          (get :site-defaults site-defaults)
                          (assoc-in [:params :keywordize] false)
                          (assoc-in [:session :cookie-attrs :same-site] :lax)))
+
+      ;; Do not allow inline style/script but anything loaded from
+      ;; this origin is fine.
+      (wrap-csp "default-src 'self'")
+
       (logging/wrap-logging)))

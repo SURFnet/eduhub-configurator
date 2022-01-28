@@ -75,21 +75,24 @@
           :method "post"}
          "Some changes since deploy at " (html-time/time last-commit) "."
          [:div.secundary-actions
-          [:button.primary {:type    "submit"
-                            :name    "commit"
-                            :value   "true"
-                            :onclick "return confirm('Deploy edits?')"}
+          [:button.primary {:type                 "submit"
+                            :name                 "commit"
+                            :value                "true"
+                            :data-confirm-event   "click"
+                            :data-confirm-message "Deploy edits?"}
            "Deploy changes"]
-          [:button {:type    "submit"
-                    :name    "reset"
-                    :value   "true"
-                    :onclick "return confirm('Discard changes?')"}
+          [:button {:type                 "submit"
+                    :name                 "reset"
+                    :value                "true"
+                    :data-confirm-event   "click"
+                    :data-confirm-message "Discard changes?"}
            "Discard changes"]])])
      (form/form
-      {:action     "/versioning"
-       :method     "post"
-       :data-dirty "never"
-       :onsubmit   "return confirm('Reset edits?')"}
+      {:action               "/versioning"
+       :method               "post"
+       :data-dirty           "never"
+       :data-confirm-event   "submit"
+       :data-confirm-message "Reset edits?"}
       [:input {:type  "hidden"
                :name  "current-version"
                :value current-version}]

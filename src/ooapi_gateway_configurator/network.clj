@@ -1,4 +1,4 @@
-;; Copyright (C) 2021 SURFnet B.V.
+;; Copyright (C) 2021, 2022 SURFnet B.V.
 ;;
 ;; This program is free software: you can redistribute it and/or modify it
 ;; under the terms of the GNU General Public License as published by the Free
@@ -26,7 +26,7 @@
 (def ins-node {:shape "ellipse", :color "#aaffaa"})
 
 (defn ->nodes-edges [{:keys [model]}]
-  [;; nodes
+  {:nodes
    (into (map (fn [id] (into app-node
                              {:id    (str "app-" id)
                               :label id
@@ -37,7 +37,8 @@
                               :label id
                               :url   (str "/institutions/" id)}))
               (model/institution-ids model)))
-   ;; edges
+
+   :edges
    (map (fn [[app institution]]
           {:from (str "app-" app)
            :to (str "ins-" institution)})
@@ -47,9 +48,9 @@
                [?xs :access/paths _] ;; access entity must have paths to count
                [?xs :access/app ?aid]
                [?xs :access/institution ?eid]]
-             model))])
+             model))})
 
-(defn ->dot [[nodes edges]]
+(defn ->dot [{:keys [nodes edges]}]
   (str "graph network {\n"
        (->> nodes
             (map #(str "  " (pr-str (:id %))
@@ -64,7 +65,7 @@
             (s/join "\n"))
        "\n}\n"))
 
-(defn network-page [[nodes edges]]
+(defn network-page []
   [:div.index
    [:nav
     [:a {:href "/"} "⌂"]
@@ -80,47 +81,25 @@
       " to visualize the network."]
      [:p [:a.button {:href "/network.dot"} "network.dot"]]]
 
-    [:div#network {:style "display:none"}
+    [:div#network.hidden
      [:div#network-box [:div#network-content]]
      [:script {:src "/vis-network/vis-network.min.js"}]
-     [:script {:type "text/javascript"}
-      "(function() {
-         const nodes = " (json/json-str nodes) ";
-         const edges = " (json/json-str edges) ";
-         const nw = new vis.Network(
-           document.getElementById('network-content'), {
-             nodes: new vis.DataSet(nodes),
-             edges: new vis.DataSet(edges)
-           }, {
-             // options
-           }
-         );
-         nw.on('doubleClick', (ev) => {
-           const nodeId = ev.nodes[0];
-           const node = nodes.find(({id}) => id === nodeId);
-           if (node) {
-             if (ev.event.srcEvent.ctrlKey) {
-               const win = window.open(node.url, 'ooapi-gateway-node');
-               win.focus();
-             } else {
-               document.location = node.url;
-             }
-           }
-         });
-         document.getElementById('network').style.display = null;
-       })()"]
+     [:script {:src "/network.js"}]
      [:p.help
       "Scroll to zoom in/out, drag nodes to reposition, reload to
       reposition all, double click to navigate to the detail page,
       ctrl double click to open detail page in a different browser
       tab."]]]])
 
-(defroutes handler
+(defroutes -handler
   (GET "/network/" req
+    (layout (network-page) req "Network"))
+  (GET "/network.json" req
     (-> req
         (->nodes-edges)
-        (network-page)
-        (layout req "Network")))
+        (json/write-str)
+        (response/response)
+        (response/content-type "application/json; charset=utf-8")))
   (GET "/network.dot" req
     (-> req
         (->nodes-edges)
@@ -129,3 +108,10 @@
         (response/content-type "text/x-graphviz")
         (assoc-in [:headers "Content-Disposition"]
                   "attachment; filename=\"network.dot\""))))
+
+(def handler
+  (fn [req]
+    (let [res (-handler req)]
+      ;; Allow unsafe inline styles to avoid warnings from visjs.
+      (assoc-in res [:headers "Content-Security-Policy"]
+                "default-src 'self'; style-src 'self' 'unsafe-inline'"))))

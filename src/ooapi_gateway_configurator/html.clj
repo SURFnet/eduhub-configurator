@@ -35,7 +35,8 @@
               (escape-html title))]
     [:link {:href "/screen.css" :rel "stylesheet"}]
     [:meta {:name "viewport", :content "width=device-width"}]
-    [:script {:src "/unload.js"}]]
+    [:script {:src "/unload.js"}]
+    [:script {:src "/confirm.js"}]]
    body-tag))
 
 (defn header
@@ -77,8 +78,3 @@
       (bare-layout (str "Error ID " id))
       (render req)
       (status http/internal-server-error)))
-
-(defn confirm-js [action resource id]
-  (str "return confirm("
-       (pr-str (str "Really " (name action) " " resource " '" id "'?"))
-       ")"))

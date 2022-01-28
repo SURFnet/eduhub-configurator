@@ -1,4 +1,4 @@
-;; Copyright (C) 2021 SURFnet B.V.
+;; Copyright (C) 2021, 2022 SURFnet B.V.
 ;;
 ;; This program is free software: you can redistribute it and/or modify it
 ;; under the terms of the GNU General Public License as published by the Free
@@ -20,7 +20,7 @@
             [datascript.core :as d]
             [hiccup.util :refer [escape-html]]
             [ooapi-gateway-configurator.form :as form]
-            [ooapi-gateway-configurator.html :refer [confirm-js layout not-found]]
+            [ooapi-gateway-configurator.html :refer [layout not-found]]
             [ooapi-gateway-configurator.http :as http]
             [ooapi-gateway-configurator.model :as model]
             [ring.util.codec :refer [url-encode]]
@@ -290,7 +290,7 @@
    (form/form
     (cond-> {:method "post"}
       dirty (assoc :data-dirty "true"))
-    [:input {:type "submit", :style "display: none"}] ;; ensure enter key submits
+    [:input.hidden {:type "submit"}] ;; ensure enter key submits
     (into [:div] (form institution))
 
     [:div.actions
@@ -301,8 +301,9 @@
    [:div.bottom-actions
     (form/form
      {:method "delete" :class "delete"}
-     [:button {:type    "submit"
-               :onclick (confirm-js :delete "institution" orig-id)}
+     [:button {:type                 "submit"
+               :data-confirm-event   "click"
+               :data-confirm-message (str "Really delete institution '" orig-id "'?")}
       "Delete"])]])
 
 (defn- delete-header-fn-from-params

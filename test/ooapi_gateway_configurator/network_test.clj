@@ -14,7 +14,8 @@
 ;; with this program. If not, see http://www.gnu.org/licenses/.
 
 (ns ooapi-gateway-configurator.network-test
-  (:require [clojure.test :refer [deftest testing is use-fixtures]]
+  (:require [clojure.data.json :as json]
+            [clojure.test :refer [deftest testing is use-fixtures]]
             [ooapi-gateway-configurator.http :as http]
             [ooapi-gateway-configurator.network :as network]
             [ooapi-gateway-configurator.store-test :as store-test]
@@ -37,12 +38,24 @@
     (let [res (do-get "/network/")]
       (is (= http/ok (:status res))
           "OK")
-      (is (re-find #"(?s)<script.*\"fred\".*</script>" (:body res))
-          "includes some JS snippet referencing fred")
-      (is (re-find #"(?s)<script.*\"Basic\.Auth\.Backend\".*</script>" (:body res))
-          "includes some JS snippet referencing Basic.Auth.Backend"))))
+      (is (get-in res [:headers "Content-Security-Policy"])
+          "has a custom CSP header"))))
 
-(deftest network-dot-download
+(deftest network-json
+  (testing "GET /network.json"
+    (let [res (do-get "/network.json")]
+      (is (= http/ok (:status res))
+          "OK")
+      (is (= "application/json; charset=utf-8"
+             (get-in res [:headers "Content-Type"]))
+          "proper content type")
+      (let [json (-> res :body (json/read-str :key-fn keyword))]
+        (is (-> json :nodes)
+            "has nodes")
+        (is (-> json :edges)
+            "has edges")))))
+
+(deftest network-dot
   (testing "GET /network.dot"
     (let [res (do-get "/network.dot")]
       (is (= http/ok (:status res))
