@@ -1,4 +1,4 @@
-;; Copyright (C) 2021 SURFnet B.V.
+;; Copyright (C) 2021, 2022 SURFnet B.V.
 ;;
 ;; This program is free software: you can redistribute it and/or modify it
 ;; under the terms of the GNU General Public License as published by the Free
@@ -21,22 +21,21 @@
 
   :dependencies [[ch.qos.logback.contrib/logback-jackson "0.1.5"]
                  [ch.qos.logback.contrib/logback-json-classic "0.1.5"]
-                 [ch.qos.logback/logback-classic "1.2.5"]
-                 [cheshire "5.10.1"]
+                 [ch.qos.logback/logback-classic "1.2.10"]
                  [clj-commons/clj-yaml "0.7.107"]
                  [compojure "1.6.2"]
-                 [datascript "1.2.10"]
+                 [datascript "1.3.7"]
                  [environ "1.2.0"]
                  [hiccup "1.0.5"]
                  [nl.jomco/envopts "0.0.4"]
                  [org.clojure/clojure "1.10.3"]
                  [org.clojure/data.json "2.4.0"]
                  [org.clojure/data.xml "0.0.8"]
-                 [org.clojure/tools.logging "1.1.0"]
-                 [ring "1.9.4"]
-                 [ring-oauth2 "0.1.5"]
+                 [org.clojure/tools.logging "1.2.4"]
+                 [ring "1.9.5"]
+                 [ring-oauth2 "0.2.0"]
                  [ring/ring-defaults "0.3.3"]
-                 [ring/ring-jetty-adapter "1.9.4"]]
+                 [ring/ring-jetty-adapter "1.9.5"]]
 
   :main ^:skip-aot ooapi-gateway-configurator.core
 
@@ -45,8 +44,8 @@
   :profiles {:uberjar {:aot          :all
                        :uberjar-name "ooapi-gateway-configurator.jar"}
              :dev     {:source-paths ["dev"]
-                       :dependencies [[clj-kondo "2021.10.19"]
-                                      [org.clojure/tools.namespace "1.1.0"]
+                       :dependencies [[clj-kondo "2022.01.15"]
+                                      [org.clojure/tools.namespace "1.2.0"]
                                       [ring/ring-json "0.5.1"]
                                       [ring/ring-mock "0.4.0"]]
                        :aliases      {"lint"  ["run" "-m" "clj-kondo.main" "--lint" "src"]}}}
