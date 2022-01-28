@@ -19,7 +19,9 @@
             :url  "https://www.gnu.org/licenses/gpl-3.0.en.html"}
   :url "https://github.com/SURFnet/ooapi-gateway-configurator"
 
-  :dependencies [[ch.qos.logback/logback-classic "1.2.5"]
+  :dependencies [[ch.qos.logback.contrib/logback-jackson "0.1.5"]
+                 [ch.qos.logback.contrib/logback-json-classic "0.1.5"]
+                 [ch.qos.logback/logback-classic "1.2.5"]
                  [cheshire "5.10.1"]
                  [clj-commons/clj-yaml "0.7.107"]
                  [compojure "1.6.2"]

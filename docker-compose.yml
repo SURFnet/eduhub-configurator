@@ -1,0 +1,43 @@
+version: "3.9"
+services:
+  # Example configuration with logging to fluentd/graylog
+  #
+  # This assumes that the observability stack is already running see
+  # `observability/README.md` and `observability/docker-compose.yml`
+  # in the surf-ooapi-gateway repo.
+  # 
+  configurator:
+    build:
+      context: '.'
+      dockerfile: 'Dockerfile'
+    ports:
+      - "8080:8080"
+    volumes:
+      - "./resources:/resources"
+    environment:
+      AUTH_AUTHORIZE_URI: "${AUTH_AUTHORIZE_URI}"
+      AUTH_ACCESS_TOKEN_URI: "${AUTH_ACCESS_TOKEN_URI}"
+      AUTH_CLIENT_ID: "${AUTH_CLIENT_ID}"
+      AUTH_CLIENT_SECRET: "${AUTH_CLIENT_SECRET}"
+      AUTH_USER_INFO_URI: "${AUTH_USER_INFO_URI}"
+      AUTH_CONEXT_GROUP_IDS: "${AUTH_CONEXT_GROUP_IDS}"
+      AUTH_REDIRECT_URI: "http://localhost:8080/oauth2/conext/callback"
+      GATEWAY_CONFIG_YAML: "/resources/test/gateway.config.yml"
+      PIPELINE: "test"
+    logging:
+      driver: "fluentd"
+      options:
+        fluentd-address: localhost:24224
+        tag: docker.configurator
+    # make sure the prometheus server can access our metrics endpoint
+    networks:
+      - observability
+      - default
+
+networks:
+  observability:
+    external: true  # join existing network
+    # network is defined in
+    # observability/docker-compose.yml, which needs to be started first!
+    name: "observability_default"
+
