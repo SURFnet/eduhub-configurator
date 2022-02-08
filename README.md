@@ -74,7 +74,7 @@ The OIDC client secret.
 
 ### `AUTH_USER_INFO_URI`
 
-The OIDC userinfo_endpoint to use. 
+The OIDC userinfo_endpoint to use.
 
 For testing, this should be set to
 "https://connect.test.surfconext.nl/oidc/userinfo". In production,
@@ -130,17 +130,90 @@ Note: this is a POSIX environment variable which the JVM honors.
 
 # Configuring logging
 
+## Logback configuration
+
 Logging uses [logback](https://www.baeldung.com/logback). There is an
 example configuration in `dev/logback.xml`, which is loaded in
-development. In production you can specify a logback config file by
-using
+development. When running the configurator jar (in production) you can
+specify a logback config file by using
 
     java -Dlogback.configurationFile=/path/to/logback.xml \
       -jar target/uberjar/ooapi-gateway-configurator.jar
 
+## Logging to Graylog via Docker - infrastructure
+
+In production we aggregate logs (from gateway, configurator and
+supporting infrastructure) in Graylog. The ooapi-configurator
+repository contains an development setup in
+[dev/observability](https://github.com/SURFnet/surf-ooapi-gateway/tree/master/dev/observability)
+containing a
+[docker-compose.yml](https://github.com/SURFnet/surf-ooapi-gateway/blob/master/dev/observability/docker-compose.yml)
+and supporting configuration files that set up Graylog, Prometheus,
+and fluentd in a docker network called "observability".
+
+Any docker container running in dev can then use the `fluentd` docker
+logging driver to send console output to Graylog. The
+[development docker-compose.yml](./docker-compose.yml) has this entry
+to set that up:
+
+```
+    logging:
+      driver: "fluentd"
+      options:
+        fluentd-address: localhost:24224
+        tag: docker.configurator
+```
+
+Not that we tag the logging with `docker.configurator` so that we
+process the configurator messages separately, see below.
+
+## Logging to Graylog via Docker - GELF output from configurator
+
+The [development Dockerfile](./Dockerfile) for this application
+installs [./configurator.production.logback.xml](configurator.production.logback.xml) as the logback
+configuration. This sets up JSON-formatted output for all log
+messages. The generated JSON data does not contain the required
+properties for GELF messages, so some translation is necessary. In
+development, we used [a `fluentd` configuration file for
+docker](https://github.com/SURFnet/surf-ooapi-gateway/blob/master/dev/observability/fluentconfig/conf/docker.conf).
+
+That contains the following relevant entries specifically for logback
+JSON to GELF translation:
+
+```
+# Settings for parsing logback JSON logs
+
+# logback uses "message" for the message, but "short_message" is
+# required.
+
+[FILTER]
+    Name modify
+    Match docker.configurator
+    Hard_rename message short_message
+
+# Timestamp in json log is confusing graylog and we're already
+# receiving a timestamp from docker.
+
+[FILTER]
+    Name modify
+    Match docker.configurator
+    Remove timestamp
+
+# MDC is the Java logging context, pass along all the keys
+
+[FILTER]
+    Name nest
+    Match docker.configurator
+    Operation lift
+    Nested_under mdc
+```
+
+Note that these entries match the `docker.configurator` tag mentioned
+above.
+
 # License
 
-Copyright (C) 2021 SURFnet B.V.
+Copyright (C) 2021 - 2022 SURFnet B.V.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
