@@ -38,7 +38,7 @@
 (defn wrap
   [handler {:keys [gateway-config-file read-only?] :or {read-only? false}}]
   (-> handler
-      (store/wrap {:gateway-config-yaml (.getPath gateway-config-file)
+      (store/wrap {:gateway-config-yaml gateway-config-file
                    :pipeline            "test"
                    :read-only?          read-only?})
       (wrap-defaults (-> site-defaults
@@ -51,7 +51,7 @@
   (fn [f]
     (let [{:keys [gateway-config-file]
            :as   state} (setup)]
-      (binding [*config* {:gateway-config-yaml (.getPath gateway-config-file)
+      (binding [*config* {:gateway-config-yaml gateway-config-file
                           :pipeline            "test"}]
         (f))
       (teardown state))))

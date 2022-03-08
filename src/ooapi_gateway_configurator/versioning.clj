@@ -56,8 +56,18 @@
   (:require [clojure.edn :as edn]
             [clojure.java.io :as io]
             [clojure.string :as string]
-            [ooapi-gateway-configurator.digest :as digest])
+            [clojure.tools.logging :as log]
+            [ooapi-gateway-configurator.digest :as digest]
+            [ooapi-gateway-configurator.logging :as logging])
   (:import [java.io File PushbackReader]))
+
+(defn- as-path
+  [f]
+  (cond
+    (string? f)
+    f
+    (instance? java.io.File f)
+    (.getPath f)))
 
 (defn- digest
   [contents]
@@ -171,6 +181,9 @@
   Returns true if stage was deleted, nil if nothing was staged."
   [source-path opts]
   (let [f (io/as-file (stage-file-path source-path opts))]
+    (logging/with-mdc {:source-path (as-path source-path)
+                       :event/type  "unstage"}
+      (log/info "Unstage" (as-path source-path)))
     (when (.exists f)
       (.delete f)
       true)))
@@ -196,6 +209,9 @@
         (let [backup-path (backup-file-path source-path opts)
               source      (read-source-file source-path)]
           (when (= (:source-version staged) (:source-version source))
+            (logging/with-mdc {:source-path (as-path source-path)
+                               :event/type  "commit"}
+              (log/info "Commit" (as-path source-path)))
             (spit backup-path (:contents source))
             (spit source-path (:contents staged))
             (.delete (io/as-file stage-path))
@@ -211,11 +227,14 @@
                       timestamp
                       (inst-ms timestamp))
         backup-path (work-path work-dir source-path (str ".backup." timestamp))]
+    (logging/with-mdc {:source-path (as-path source-path)
+                       :event/type  "reset"}
+      (log/info "Reset" (as-path source-path)))
     (stage! source-path previous-version (slurp backup-path) opts)))
 
 (defn backups
   [source-path {:keys [work-dir]}]
-  (let [dir-path             (or work-dir (.getParent (io/as-file source-path)))
+  (let [dir-path        (or work-dir (.getParent (io/as-file source-path)))
         backup-path-beg (work-path work-dir source-path ".backup.")
         backup?         (fn [b]
                           (and (.isFile (io/as-file b))
