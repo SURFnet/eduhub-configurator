@@ -14,12 +14,13 @@
 ;; with this program. If not, see http://www.gnu.org/licenses/.
 
 (ns ooapi-gateway-configurator.user-info
-  (:require [clj-http.client :as http]))
+  (:require [clj-http.client :as http]
+            [ooapi-gateway-configurator.logging :as logging]))
 
 (defn- fetch-user-info
   "Get user-info from session or from user-info-endpoint
   for every available OAuth2 access token"
-  [{:keys [oauth2/access-tokens]
+  [{:keys                 [oauth2/access-tokens]
     {:keys [::user-info]} :session}
    profiles]
   (reduce (fn [result [key _]]
@@ -44,11 +45,15 @@
 
   When oauth2 authentication tokens are present in the request, this
   middleware will request the available user-info for the tokens and
-  provide it as `:oauth2/user-info`.
+  provide it as `:oauth2/user-info` in the request and the response.
 
   The user-info is persisted in the session and kept in sync with the
   access tokens; user-info that has no corresponding access token will
   be removed.
+
+  This middleware also adds an SLF4J MDC key \"oauth2/sub\" with the
+  subject (\"sub\") of value of the user-info when `handler` is
+  called.
 
   This middleware relies on `:oauth2/access-tokens` being provided, so
   it should normally be wrapped with `ring.middleware.oauth2/wrap-oauth2`
@@ -63,11 +68,13 @@
   {:pre [(map? profiles)
          (every? :user-info-uri (vals profiles))]}
   (fn [request]
-    (let [user-info (fetch-user-info request profiles)
-          response  (-> request
-                        (assoc :oauth2/user-info user-info)
-                        (handler))]
-      (assoc response :session
-             (assoc (or (:session response)
-                        (:session request))
-                    ::user-info user-info)))))
+    (let [user-info (fetch-user-info request profiles)]
+      (logging/with-mdc {:oauth2/sub (get-in user-info [:conext :sub])}
+        (let [response (-> request
+                            (assoc :oauth2/user-info user-info)
+                            (handler))]
+          (assoc response
+                 :session (assoc (or (:session response)
+                                     (:session request))
+                                 ::user-info user-info)
+                 :oauth2/user-info user-info))))))

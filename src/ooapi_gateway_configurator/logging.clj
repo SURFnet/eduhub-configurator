@@ -98,8 +98,9 @@
     (let [method (string/upper-case (name request-method))]
       (with-mdc {:request_method method
                  :url            uri}
-        (when-let [{:keys [status] :as response} (f request)]
-          (with-mdc {:http_status status}
+        (when-let [{:keys [status :oauth2/user-info] :as response} (f request)]
+          (with-mdc {:http_status status
+                     :oauth2/sub  (get-in user-info [:conext :sub])}
             (log/info status method uri)
             response))))))
 
