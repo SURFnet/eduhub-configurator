@@ -20,8 +20,8 @@
   interface to the UI and handlers.
 
   The assumption is that the datascript query / transaction model is
-  convienient enough to use in this way, so we don't need a lot of
-  translation code.
+  convienient enough that we don't need a lot of translation code. See
+  also the [[event->tx]] multi-method.
 
   We still need some glue code to translate between the datascript
   model and the eventual gateway configuration file (a yml file, tree
@@ -72,7 +72,7 @@
         ;; remove :some/other with particular value
         [:db/retract some-id :some/other \"value\"]
 
-        ;; entity map trancation:
+        ;; entity map transaction:
         ;; adds a whole bunch of attributes
         {:db/id some-id
          :some/attribute \"value\"
@@ -152,19 +152,28 @@
    ;;
    ;; See also :access/app and :access/institution, below.
    :institution/id {:db/unique :db.unique/identity
-                    :db/doc "The unique id (name) of the institution. Can be used as a ref"}
-   :app/id {:db/unique :db.unique/identity
-            :db/doc "The unique id (name) of the institution. Can be used as a ref"}
+                    :db/doc    "The unique id (name) of the institution. Can be used as a ref"}
+   :app/id         {:db/unique :db.unique/identity
+                    :db/doc    "The unique id (name) of the institution. Can be used as a ref"}
+
+   ;; We list all attributes here even when they have no definition
+   ;; datascript does not require this, but we can use it to filter
+   ;; out unexpected attributes.
+   :app/password-hash         {}
+   :app/password-salt         {}
+   :institution/notes         {}
+   :institution/proxy-options {}
+   :institution/url           {}
 
    :path/spec {:db/unique :db.unique/identity
-               :db/doc "A single path that can be accessed."}
+               :db/doc    "A single path that can be accessed."}
 
    ;; An access entity has a collection of paths, each referring to a
    ;; :path/spec - so you can't add an :access/path that refers to a
    ;; non-existing :path/spec
    :access/paths {:db/cardinality :db.cardinality/many
-                  :db/valueType :db.type/ref
-                  :db/doc "Collection of paths that may be accessed for this app+institution pair."}
+                  :db/valueType   :db.type/ref
+                  :db/doc         "Collection of paths that may be accessed for this app+institution pair."}
 
    ;; We want to assert that there is only a single access entity per
    ;; app + institution combination. To do that, have we have the refs
@@ -173,10 +182,10 @@
    ;; unique.
    ;;
    ;; see also https://docs.datomic.com/on-prem/schema/schema.html#composite-tuples
-   :access/app {:db/valueType :db.type/ref}
-   :access/institution {:db/valueType :db.type/ref}
-   :access/app+institution  {:db/tupleAttrs [:access/app :access/institution]
-                             :db/unique :db.unique/identity}})
+   :access/app             {:db/valueType :db.type/ref}
+   :access/institution     {:db/valueType :db.type/ref}
+   :access/app+institution {:db/tupleAttrs [:access/app :access/institution]
+                            :db/unique     :db.unique/identity}})
 
 (def belongs-to-attrs
   "Attributes referring to entities that \"own\" this entity.
@@ -195,9 +204,9 @@
 
 (defn- owned-eids
   [db eid seen]
-  (let [owned (directly-owned-eids db eid)
+  (let [owned     (directly-owned-eids db eid)
         new-owned (set/difference owned seen) ;; ignore entities already seen
-        seen (into seen owned)]
+        seen      (into seen owned)]
     (into seen (mapcat #(owned-eids db % seen)) new-owned)))
 
 (defn retract-recursive
@@ -253,7 +262,7 @@
   This will remove any paths in `model` that are not specified in
   `paths`, and works whether the relevant `access` entity already
   exists, or not. See also [[schema]]"
-  [model & {:keys [app-id institution-id paths]}]
+  [model {:keys [app-id institution-id paths]}]
   {:pre [(string? app-id) (string? institution-id) (or (nil? paths) (coll? paths))]}
   (if-let [xs (access-eid model app-id institution-id)]
     ;; if there already is an access entity, retract all its paths and
@@ -263,6 +272,57 @@
                  [:db/add xs :access/paths [:path/spec spec]])
                paths))
     ;; if there isn't an access entity yet, create a new one
-    [{:access/institution  [:institution/id institution-id]
-      :access/app [:app/id app-id]
-      :access/paths (map (fn [path] [:path/spec path]) paths)}]))
+    [{:access/institution [:institution/id institution-id]
+      :access/app         [:app/id app-id]
+      :access/paths       (map (fn [path] [:path/spec path]) paths)}]))
+
+
+;; Events
+
+(defmulti event->tx
+  "Given a datascript `model` and an `event` map, returns a datascript
+  transaction that projects the event on the model
+
+  Note that a transaction is a collection of changes.  See also
+  https://docs.datomic.com/on-prem/transactions/transactions.html"
+  (fn [_ event]
+    (:event/type event)))
+
+(defmethod event->tx :set-paths
+  [model event]
+  (set-paths model event))
+
+(defmethod event->tx :upsert-app
+  [_ {:keys [orig-id] :as event}]
+  (cond-> []
+    (and orig-id (not= orig-id (:app/id event)))
+    ;; The app/id changed. We need to transact that attribute
+    ;; first. This transaction finds the attribute by its original
+    ;; id, and sets its value to the new id.
+    (conj [:db/add [:app/id orig-id] :app/id (:app/id event)])
+
+    true
+    ;; Update the rest of the attributes; uses an entity map as a
+    ;; change. This adds all attributes in the map that are defined in
+    ;; the db schema. The entity is found by the app/id attribute.
+    ;;
+    ;; See also
+    ;; https://docs.datomic.com/on-prem/transactions/transactions.html#adding-entity-references
+    (conj (select-keys event (keys schema)))))
+
+(defmethod event->tx :remove-app
+  [model {:app/keys [id]}]
+  (remove-app model id))
+
+(defmethod event->tx :upsert-institution
+  [_ {:keys [orig-id] :as event}]
+  (cond-> []
+    (and orig-id (not= orig-id (:institution/id event))) ;; alter institution id
+    (conj [:db/add [:institution/id orig-id] :institution/id (:institution/id event)])
+
+    true
+    (conj (select-keys event (keys schema)))))
+
+(defmethod event->tx :remove-institution
+  [model {:institution/keys [id]}]
+  (remove-institution model id))

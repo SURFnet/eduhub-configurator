@@ -71,7 +71,7 @@
       (testing "for existing apps"
         (is (= #{"/" "/foo"} (get-paths @conn "barney" "endp"))
             "app has some paths")
-        (d/transact! conn (model/set-paths @conn :app-id "barney" :institution-id "endp" :paths #{"/"}))
+        (d/transact! conn (model/set-paths @conn {:app-id "barney" :institution-id "endp" :paths #{"/"}}))
         (is (= #{"/"} (get-paths @conn "barney" "endp"))
             "paths are updated in db"))
 
@@ -79,6 +79,6 @@
         ;; insert new app
         (d/transact! conn [{:app/id "fred"}])
 
-        (d/transact! conn (model/set-paths @conn :app-id "fred" :institution-id "endp" :paths ["/foo" "/"]))
+        (d/transact! conn (model/set-paths @conn {:app-id "fred" :institution-id "endp" :paths ["/foo" "/"]}))
         (is (= #{"/foo" "/"} (get-paths @conn "fred" "endp"))
             "paths are set in the db")))))

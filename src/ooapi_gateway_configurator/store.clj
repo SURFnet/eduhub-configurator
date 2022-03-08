@@ -16,9 +16,11 @@
 (ns ooapi-gateway-configurator.store
   (:require [clj-yaml.core :as yaml]
             [clojure.java.io :as io]
+            [clojure.tools.logging :as log]
             [datascript.core :as d]
             [ooapi-gateway-configurator.form :as form]
             [ooapi-gateway-configurator.html-time :as html-time]
+            [ooapi-gateway-configurator.logging :as logging]
             [ooapi-gateway-configurator.model :as model]
             [ooapi-gateway-configurator.store.gateway-config :as gateway-config]
             [ooapi-gateway-configurator.versioning :as versioning]
@@ -155,10 +157,16 @@
                     ;; should be put on the response
                     (into (dissoc cur :conn))
                     (assoc ::last-commit (last-commit config))
-                    app)]
+                    app)
+            ;; create transactions from events
+            res (assoc res ::model/tx
+                       (into [] (mapcat #(model/event->tx model %) (:events res))))]
+        (doseq [e (:events res)]
+          (logging/with-mdc e (log/info (str "event" (:event/type e)))))
         (when-not read-only?
           (when-let [tx (::model/tx res)]
             (d/transact! conn tx))
+
           (let [new-model @conn]
             (when (and (seq new-model)
                        (not= new-model model))

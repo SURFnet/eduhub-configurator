@@ -181,7 +181,7 @@
    [:div.field
     [:label {:for "proxy-timeout"} "Timeout "
      [:span.info "in milliseconds"]]
-    [:input {:type "number", :step "1"
+    [:input {:type "number",        :step "1"
              :id   "proxy-timeout", :name "proxy-timeout", :value proxy-timeout}]]
 
    [:div.field
@@ -365,58 +365,56 @@
       (let [institution (params-> params)]
         (-> "."
             (redirect :see-other)
-            (assoc ::model/tx (cond-> []
-                                (and orig-id (not= orig-id (:institution/id institution)))
-                                (conj [:db/add [:institution/id orig-id] :institution/id (:institution/id institution)])
-
-                                true
-                                (conj institution)))
-            (assoc :flash (str (if orig-id "Updated" "Created") " institution '" id "'")))))))
+            (assoc :events [(assoc institution
+                                   :event/type :upsert-institution
+                                   :orig-id orig-id)]
+                   :flash (str (if orig-id "Updated" "Created") " institution '" id "'")))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defroutes handler
   (GET "/institutions/" {:keys [model] :as req}
-    (-> model
-        (model/institution-ids)
-        (index-page)
-        (layout req "institutions")))
+       (-> model
+           (model/institution-ids)
+           (index-page)
+           (layout req "institutions")))
 
   (GET "/institutions/new" req
-    (-> {}
-        (detail-page nil)
-        (layout req (subtitle nil))))
+       (-> {}
+           (detail-page nil)
+           (layout req (subtitle nil))))
 
   (POST "/institutions/new" req
-    (create-or-update req))
+        (create-or-update req))
 
   (GET "/institutions/:orig-id" {:keys             [model]
                                  {:keys [orig-id]} :params
                                  :as               req}
 
-    (if-let [institution (d/pull model '[*] [:institution/id orig-id])]
-      (-> institution
-          (->params)
-          (detail-page orig-id)
-          (layout req (subtitle orig-id)))
-      (not-found (str "Institution '" orig-id "' not found..")
-                 req)))
+       (if-let [institution (d/pull model '[*] [:institution/id orig-id])]
+         (-> institution
+             (->params)
+             (detail-page orig-id)
+             (layout req (subtitle orig-id)))
+         (not-found (str "Institution '" orig-id "' not found..")
+                    req)))
 
   (POST "/institutions/:orig-id" {:keys             [model]
                                   {:keys [orig-id]} :params
                                   :as               req}
-    (if (d/entid model [:institution/id orig-id])
-      (create-or-update req)
-      (not-found (str "Institution '" orig-id "' not found..")
-                 req)))
+        (if (d/entid model [:institution/id orig-id])
+          (create-or-update req)
+          (not-found (str "Institution '" orig-id "' not found..")
+                     req)))
 
   (DELETE "/institutions/:id" {:keys        [model]
                                {:keys [id]} :params
                                :as          req}
-    (if (d/entid model [:institution/id id])
-      (-> "."
-          (redirect :see-other)
-          (assoc ::model/tx (model/remove-institution model id))
-          (assoc :flash (str "Deleted institution '" id "'")))
-      (not-found (str "Institution '" id "' not found..")
-                 req))))
+          (if (d/entid model [:institution/id id])
+            (-> "."
+                (redirect :see-other)
+                (assoc :events [{:event/type     :remove-institution
+                                 :institution/id id}]
+                       :flash (str "Deleted institution '" id "'")))
+            (not-found (str "Institution '" id "' not found..")
+                       req))))

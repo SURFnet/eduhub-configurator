@@ -113,9 +113,9 @@
 
       (#'store/put (:db-after (d/transact! conn
                                            (model/set-paths @conn
-                                                            :app-id "barney"
-                                                            :institution-id "Basic.Auth.Backend"
-                                                            :paths [])))
+                                                            {:app-id "barney"
+                                                             :institution-id "Basic.Auth.Backend"
+                                                             :paths []})))
                    *config*)
       (#'store/commit! *config*)
 
