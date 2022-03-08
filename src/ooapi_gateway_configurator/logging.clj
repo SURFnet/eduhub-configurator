@@ -104,7 +104,7 @@
                  :parent-id      parent-id}
         (when-let [{:keys [status :oauth2/user-info] :as response} (f request)]
           (with-mdc {:http_status status
-                     :oauth2/sub  (get-in user-info [:conext :sub])}
+                     :user-id     (get-in user-info [:conext :sub])}
             (log/info status method uri)
             response))))))
 

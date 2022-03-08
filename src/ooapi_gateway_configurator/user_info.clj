@@ -51,7 +51,7 @@
   access tokens; user-info that has no corresponding access token will
   be removed.
 
-  This middleware also adds an SLF4J MDC key \"oauth2/sub\" with the
+  This middleware also adds an SLF4J MDC key \"user-id\" with the
   subject (\"sub\") of value of the user-info when `handler` is
   called.
 
@@ -69,7 +69,7 @@
          (every? :user-info-uri (vals profiles))]}
   (fn [request]
     (let [user-info (fetch-user-info request profiles)]
-      (logging/with-mdc {:oauth2/sub (get-in user-info [:conext :sub])}
+      (logging/with-mdc {:user-id (get-in user-info [:conext :sub])}
         (let [response (-> request
                             (assoc :oauth2/user-info user-info)
                             (handler))]
