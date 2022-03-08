@@ -4,7 +4,8 @@
 
            :docstring-blank {:level :warning}
            :docstring-first-line-sentence {:level :warning}
-           :docstring-leading-trailing-whitespace {:level :warning}}
+           :docstring-leading-trailing-whitespace {:level :warning}
+           :unresolved-symbol {:exclude [(ooapi-gateway-configurator.auth-test/with-cleanup)]}}
  :hooks {:analyze-call {clojure.core/def hooks.user/docstring
                         clojure.core/defn hooks.user/docstring
                         clojure.core/ns hooks.user/docstring}}}
