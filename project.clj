@@ -28,6 +28,7 @@
                  [environ "1.2.0"]
                  [hiccup "1.0.5"]
                  [nl.jomco/envopts "0.0.4"]
+                 [nl.jomco/ring-trace-context "0.0.2"]
                  [org.clojure/clojure "1.10.3"]
                  [org.clojure/data.json "2.4.0"]
                  [org.clojure/data.xml "0.0.8"]

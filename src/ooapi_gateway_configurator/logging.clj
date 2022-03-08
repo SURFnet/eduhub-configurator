@@ -94,10 +94,14 @@
 
 (defn wrap-request-logging
   [f]
-  (fn [{:keys [request-method uri] :as request}]
+  (fn [{:keys                        [request-method uri]
+        {:keys [trace-id parent-id]} :traceparent
+        :as                          request}]
     (let [method (string/upper-case (name request-method))]
       (with-mdc {:request_method method
-                 :url            uri}
+                 :url            uri
+                 :trace-id       trace-id
+                 :parent-id      parent-id}
         (when-let [{:keys [status :oauth2/user-info] :as response} (f request)]
           (with-mdc {:http_status status
                      :oauth2/sub  (get-in user-info [:conext :sub])}

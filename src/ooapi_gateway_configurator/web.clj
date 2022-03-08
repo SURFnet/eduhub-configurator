@@ -16,6 +16,7 @@
 (ns ooapi-gateway-configurator.web
   (:require [compojure.core :refer [GET routes wrap-routes]]
             [compojure.route :refer [resources]]
+            [nl.jomco.ring-trace-context :as ring-trace-context]
             [ooapi-gateway-configurator.access-control-lists :as access-control-lists]
             [ooapi-gateway-configurator.applications :as applications]
             [ooapi-gateway-configurator.auth :as auth]
@@ -84,5 +85,5 @@
       ;; Do not allow inline style/script but anything loaded from
       ;; this origin is fine.
       (wrap-csp "default-src 'self'")
-
-      (logging/wrap-logging)))
+      (logging/wrap-logging)
+      (ring-trace-context/wrap-trace-context)))
