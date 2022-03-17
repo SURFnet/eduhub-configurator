@@ -276,6 +276,24 @@
       :access/app         [:app/id app-id]
       :access/paths       (map (fn [path] [:path/spec path]) paths)}]))
 
+(defn get-paths
+  "Query the paths on institution that app may access.
+
+  Returns a set of path strings, or `nil` if no there are no paths for
+  the given app + institution combination."
+  [model {:keys [app-id institution-id]}]
+  {:pre [(string? app-id) (string? institution-id)]}
+  (when-let [specs (d/q '[:find [?paths ...]
+                          :in $ ?app-id ?institution-id
+                          :where
+                          [?p :path/spec ?paths]
+                          [?a :app/id ?app-id]
+                          [?xs :access/paths ?p]
+                          [?xs :access/app ?a]
+                          [?xs :access/institution ?i]
+                          [?i :institution/id ?institution-id]]
+                        model app-id institution-id)]
+    (set specs)))
 
 ;; Events
 

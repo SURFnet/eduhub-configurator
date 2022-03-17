@@ -158,15 +158,18 @@
       (-> (str "../" (url-encode id))
           (redirect :see-other)
           (assoc :events
-                 (map (fn [other]
-                        (let [[app-id institution-id] (case context
-                                                        :application [id other]
-                                                        :institution [other id])]
-                          {:event/type     :set-paths
-                           :app-id         app-id
-                           :institution-id institution-id
-                           :paths          (get-in params ["access-control-list" other])}))
-                      other-ids))
+                 (keep (fn [other]
+                         (let [[app-id institution-id] (case context
+                                                         :application [id other]
+                                                         :institution [other id])
+                               new-paths               (set (get-in params ["access-control-list" other]))
+                               current-paths           (model/get-paths model {:app-id app-id :institution-id institution-id})]
+                           (when-not (= new-paths current-paths)
+                             {:event/type     :set-paths
+                              :app-id         app-id
+                              :institution-id institution-id
+                              :paths          new-paths})))
+                       other-ids))
           (assoc :flash (str "Updated access-control-list for " (name context) " '" id "'"))))))
 
 (defroutes applications-handler
