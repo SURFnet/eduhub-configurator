@@ -21,15 +21,15 @@
 
   :dependencies [[ch.qos.logback.contrib/logback-jackson "0.1.5"]
                  [ch.qos.logback.contrib/logback-json-classic "0.1.5"]
-                 [ch.qos.logback/logback-classic "1.2.10"]
-                 [clj-commons/clj-yaml "0.7.107"]
+                 [ch.qos.logback/logback-classic "1.2.11"]
+                 [clj-commons/clj-yaml "0.7.108"]
                  [compojure "1.6.2"]
-                 [datascript "1.3.7"]
+                 [datascript "1.3.12"]
                  [environ "1.2.0"]
                  [hiccup "1.0.5"]
                  [nl.jomco/envopts "0.0.4"]
                  [nl.jomco/ring-trace-context "0.0.2"]
-                 [org.clojure/clojure "1.10.3"]
+                 [org.clojure/clojure "1.11.0"]
                  [org.clojure/data.json "2.4.0"]
                  [org.clojure/data.xml "0.0.8"]
                  [org.clojure/tools.logging "1.2.4"]
@@ -45,10 +45,11 @@
   :profiles {:uberjar {:aot          :all
                        :uberjar-name "ooapi-gateway-configurator.jar"}
              :dev     {:source-paths ["dev"]
-                       :dependencies [[clj-kondo "2022.01.15"]
+                       :dependencies [[clj-kondo "2022.03.09"]
                                       [org.clojure/tools.namespace "1.2.0"]
                                       [ring/ring-json "0.5.1"]
                                       [ring/ring-mock "0.4.0"]]
+                       :plugins      [[lein-ancient "0.7.0"]]
                        :aliases      {"lint"  ["run" "-m" "clj-kondo.main" "--lint" "src"]}}}
 
   :repl-options {:init-ns user})

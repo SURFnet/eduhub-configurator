@@ -19,3 +19,15 @@ jobs:
 
     - name: Run compile
       run: lein uberjar
+
+  deps:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Install dependencies
+      run: lein deps
+
+    - name: Check dependency freshness
+      run: lein ancient
