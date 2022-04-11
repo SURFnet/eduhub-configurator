@@ -29,7 +29,7 @@
                  [hiccup "1.0.5"]
                  [nl.jomco/envopts "0.0.4"]
                  [nl.jomco/ring-trace-context "0.0.2"]
-                 [org.clojure/clojure "1.11.0"]
+                 [org.clojure/clojure "1.11.1"]
                  [org.clojure/data.json "2.4.0"]
                  [org.clojure/data.xml "0.0.8"]
                  [org.clojure/tools.logging "1.2.4"]
@@ -45,7 +45,7 @@
   :profiles {:uberjar {:aot          :all
                        :uberjar-name "ooapi-gateway-configurator.jar"}
              :dev     {:source-paths ["dev"]
-                       :dependencies [[clj-kondo "2022.03.09"]
+                       :dependencies [[clj-kondo "2022.04.08"]
                                       [org.clojure/tools.namespace "1.2.0"]
                                       [ring/ring-json "0.5.1"]
                                       [ring/ring-mock "0.4.0"]]
