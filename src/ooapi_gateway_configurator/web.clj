@@ -42,6 +42,10 @@
           "Network"]]]
    (store/commit-component req)])
 
+(defn not-found-handler
+  [req]
+  (not-found "Oeps, nothing here.." req))
+
 (defn mk-handler
   [config]
   (routes
@@ -54,13 +58,13 @@
     auth/wrap-member-of (get-in config [:auth :group-ids]))
    auth/logout-handler
    (resources "/" {:root "public"})
-   (fn [req] (not-found "Oeps, nothing here.." req))))
+   not-found-handler))
 
 (defn wrap-csp
   "Middleware to set CSP header unless already set."
   [handler default-value]
   (fn [req]
-    (let [res (handler req)]
+    (when-let [res (handler req)]
       (update-in res [:headers "Content-Security-Policy"]
                  (fn [value]
                    (if value

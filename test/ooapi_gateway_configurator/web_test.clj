@@ -23,7 +23,7 @@
 (def ^:dynamic *app*)
 
 (def app (-> {:auth {:group-ids #{"my-group"}}}
-             (web/mk-handler)
+             (#'web/mk-handler)
              (wrap-defaults (assoc-in site-defaults [:params :keywordize] false))))
 
 (defn do-get [uri]
@@ -34,4 +34,8 @@
   (testing "GET /"
     (let [res (do-get "/")]
       (is (= http/ok (:status res))
-          "OK"))))
+          "OK")))
+
+  (testing "Not found"
+    (is (= http/not-found
+           (:status (do-get "/does-not-exist"))))))

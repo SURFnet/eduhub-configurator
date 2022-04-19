@@ -111,7 +111,7 @@
 
 (def handler
   (fn [req]
-    (let [res (-handler req)]
+    (when-let [res (-handler req)]
       ;; Allow unsafe inline styles to avoid warnings from visjs.
       (assoc-in res [:headers "Content-Security-Policy"]
                 "default-src 'self'; style-src 'self' 'unsafe-inline'"))))
