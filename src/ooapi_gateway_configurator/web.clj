@@ -26,7 +26,8 @@
             [ooapi-gateway-configurator.logging :as logging]
             [ooapi-gateway-configurator.network :as network]
             [ooapi-gateway-configurator.store :as store]
-            [ring.middleware.defaults :refer [site-defaults wrap-defaults]]))
+            [ring.middleware.defaults :refer [site-defaults wrap-defaults]]
+            [ring.util.response :as response]))
 
 (defn main-page
   [req]
@@ -56,6 +57,9 @@
             #'access-control-lists/handler
             #'network/handler)
     auth/wrap-member-of (get-in config [:auth :group-ids]))
+   (GET "/userinfo" req
+        (-> (response/response (pr-str (:oauth2/user-info req)))
+            (response/content-type "text/plain")))
    auth/logout-handler
    (resources "/" {:root "public"})
    not-found-handler))
