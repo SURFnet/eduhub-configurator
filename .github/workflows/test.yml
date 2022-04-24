@@ -30,4 +30,4 @@ jobs:
       run: lein deps
 
     - name: Check dependency freshness
-      run: lein ancient
+      run: lein ancient check :no-profiles
