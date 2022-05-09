@@ -24,7 +24,7 @@
                  [ch.qos.logback/logback-classic "1.2.11"]
                  [clj-commons/clj-yaml "0.7.108"]
                  [compojure "1.6.2"]
-                 [datascript "1.3.12"]
+                 [datascript "1.3.13"]
                  [environ "1.2.0"]
                  [hiccup "1.0.5"]
                  [nl.jomco/envopts "0.0.4"]
@@ -45,8 +45,8 @@
   :profiles {:uberjar {:aot          :all
                        :uberjar-name "ooapi-gateway-configurator.jar"}
              :dev     {:source-paths ["dev"]
-                       :dependencies [[clj-kondo "2022.04.08"]
-                                      [org.clojure/tools.namespace "1.2.0"]
+                       :dependencies [[clj-kondo "2022.04.25"]
+                                      [org.clojure/tools.namespace "1.3.0"]
                                       [ring/ring-json "0.5.1"]
                                       [ring/ring-mock "0.4.0"]]
                        :plugins      [[lein-ancient "0.7.0"]]
