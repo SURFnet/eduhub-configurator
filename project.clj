@@ -23,7 +23,7 @@
                  [ch.qos.logback.contrib/logback-json-classic "0.1.5"]
                  [ch.qos.logback/logback-classic "1.2.11"]
                  [clj-commons/clj-yaml "0.7.108"]
-                 [compojure "1.6.2"]
+                 [compojure "1.6.3"]
                  [datascript "1.3.13"]
                  [environ "1.2.0"]
                  [hiccup "1.0.5"]
