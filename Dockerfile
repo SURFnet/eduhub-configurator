@@ -1,4 +1,5 @@
-FROM clojure:temurin-11-lein-alpine as builder
+FROM clojure:temurin-11-lein-2.9.10-alpine as builder
+
 RUN mkdir /app
 WORKDIR /app
 COPY . /app/

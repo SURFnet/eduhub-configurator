@@ -43,6 +43,7 @@
   :target-path "target/%s"
 
   :profiles {:uberjar {:aot          :all
+                       :target-path  "target/uberjar"
                        :uberjar-name "ooapi-gateway-configurator.jar"}
              :dev     {:source-paths ["dev"]
                        :dependencies [[clj-kondo "2022.08.03"]
