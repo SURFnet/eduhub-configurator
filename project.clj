@@ -22,7 +22,7 @@
   :dependencies [[ch.qos.logback.contrib/logback-jackson "0.1.5"]
                  [ch.qos.logback.contrib/logback-json-classic "0.1.5"]
                  [ch.qos.logback/logback-classic "1.4.0"]
-                 [clj-commons/clj-yaml "0.7.109"]
+                 [clj-commons/clj-yaml "0.7.110"]
                  [compojure "1.7.0"]
                  [datascript "1.3.15"]
                  [environ "1.2.0"]
@@ -33,10 +33,10 @@
                  [org.clojure/data.json "2.4.0"]
                  [org.clojure/data.xml "0.0.8"]
                  [org.clojure/tools.logging "1.2.4"]
-                 [ring "1.9.5"]
+                 [ring "1.9.6"]
                  [ring-oauth2 "0.2.0"]
                  [ring/ring-defaults "0.3.3"]
-                 [ring/ring-jetty-adapter "1.9.5"]]
+                 [ring/ring-jetty-adapter "1.9.6"]]
 
   :main ^:skip-aot ooapi-gateway-configurator.core
 
@@ -46,7 +46,7 @@
                        :target-path  "target/uberjar"
                        :uberjar-name "ooapi-gateway-configurator.jar"}
              :dev     {:source-paths ["dev"]
-                       :dependencies [[clj-kondo "2022.08.03"]
+                       :dependencies [[clj-kondo "2022.09.08"]
                                       [org.clojure/tools.namespace "1.3.0"]
                                       [ring/ring-json "0.5.1"]
                                       [ring/ring-mock "0.4.0"]]
