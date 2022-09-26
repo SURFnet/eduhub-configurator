@@ -68,8 +68,7 @@
     (let [res (do-delete "/applications/fred")]
       (is (= http/see-other (:status res))
           "see other")
-      (is (= "http://localhost/applications/"
-             (-> res :headers (get "Location")))
+      (is (= "." (-> res :headers (get "Location")))
           "redirected back to applications list")
       (is (:flash res)
           "has a message about deletion")
@@ -83,8 +82,7 @@
                        {"id" "betty"})]
       (is (= http/see-other (:status res))
           "see other")
-      (is (= "http://localhost/applications/"
-             (-> res :headers (get "Location")))
+      (is (= "." (-> res :headers (get "Location")))
           "redirected back to applications list")
       (is (:flash res)
           "has a message about update")
@@ -126,7 +124,7 @@
                         "password" "0123456789abcdef0123456789abcdef"})]
       (is (= http/see-other (:status res))
           "see other")
-      (is (= "http://localhost/applications/" (-> res :headers (get "Location")))
+      (is (= "." (-> res :headers (get "Location")))
           "redirected back to applications list")
       (is (:flash res)
           "has a message about creation")
