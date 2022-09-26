@@ -9,7 +9,15 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
+
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Cache lein project dependencies
+      uses: actions/cache@v3
+      with:
+        path: "~/.m2/repository"
+        key: "${{ runner.os }}-clojure-${{ hashFiles('**/project.clj') }}"
 
     - name: Install clojure-tools
       uses: DeLaGuardo/setup-clojure@master
