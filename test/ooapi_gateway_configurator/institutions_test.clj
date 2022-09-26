@@ -73,7 +73,7 @@
     (let [res (do-delete "/institutions/Basic.Auth.Backend")]
       (is (= http/see-other (:status res))
           "see other")
-      (is (= "http://localhost/institutions/" (-> res :headers (get "Location")))
+      (is (= "." (-> res :headers (get "Location")))
           "redirected back to institutions list")
       (is (:flash res)
           "has a message about deletion")
@@ -164,7 +164,7 @@
                         :header-values   ["1" "2" ""]})]
       (is (= http/see-other (:status res))
           "see other")
-      (is (= "http://localhost/institutions/" (-> res :headers (get "Location")))
+      (is (= "." (-> res :headers (get "Location")))
           "redirected back to institutions list")
       (is (:flash res)
           "has a message about update")
@@ -220,7 +220,7 @@
                         "oauth-client-secret" "wilma"})]
       (is (= http/see-other (:status res))
           "see other")
-      (is (= "http://localhost/institutions/" (-> res :headers (get "Location")))
+      (is (= "." (-> res :headers (get "Location")))
           "redirected back to institutions list")
       (is (:flash res)
           "has a message about creation")

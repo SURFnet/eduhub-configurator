@@ -71,7 +71,7 @@
       (let [res (do-post "/applications/fred/access-control-list" {"access-control-list[Basic.Auth.Backend][]" "/"})]
         (is (= http/see-other (:status res))
             "see other")
-        (is (= "http://localhost/applications/fred" (-> res :headers (get "Location")))
+        (is (= "../fred" (-> res :headers (get "Location")))
             "redirected back to access-control-lists list")
         (is (:flash res)
             "has a message about update")
@@ -124,7 +124,7 @@
       (let [res (do-post "/institutions/Basic.Auth.Backend/access-control-list" {"access-control-list[fred][]" "/"})]
         (is (= http/see-other (:status res))
             "see other")
-        (is (= "http://localhost/institutions/Basic.Auth.Backend" (-> res :headers (get "Location")))
+        (is (= "../Basic.Auth.Backend" (-> res :headers (get "Location")))
             "redirected back to access-control-lists list")
         (is (:flash res)
             "has a message about update")
