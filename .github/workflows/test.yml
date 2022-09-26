@@ -38,7 +38,7 @@ jobs:
         key: "${{ runner.os }}-clojure-${{ hashFiles('**/project.clj') }}"
 
     - name: Check dependency freshness
-      run: lein ancient check :no-profiles
+      run: lein check-deps
 
     - name: Install clojure-tools
       uses: DeLaGuardo/setup-clojure@master
