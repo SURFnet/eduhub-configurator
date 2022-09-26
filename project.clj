@@ -36,7 +36,10 @@
                  [ring "1.9.6"]
                  [ring-oauth2 "0.2.0"]
                  [ring/ring-defaults "0.3.3"]
-                 [ring/ring-jetty-adapter "1.9.6"]]
+                 [ring/ring-jetty-adapter "1.9.6"]
+
+                 ;; CVE-2020-36518 (pulled in by ring-oauth2 via cheshire)
+                 [com.fasterxml.jackson.core/jackson-databind "2.12.6.1"]]
 
   :main ^:skip-aot ooapi-gateway-configurator.core
 
