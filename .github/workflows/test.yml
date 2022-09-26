@@ -8,9 +8,6 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
-    - name: Install dependencies
-      run: lein deps
-
     - name: Run linters
       run: lein lint
 
@@ -26,11 +23,21 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
-    - name: Install dependencies
-      run: lein deps
-
     - name: Check dependency freshness
       run: lein ancient check :no-profiles
+
+    - name: Install clojure-tools
+      uses: DeLaGuardo/setup-clojure@master
+      with:
+        cli: latest
+
+    - name: Install clojure-nvd
+      run: |
+        clojure -Ttools install nvd-clojure/nvd-clojure '{:mvn/version "RELEASE"}' :as nvd
+
+    - name: Check dependencies for CVEs
+      run: |
+        clojure -J-Dclojure.main.report=stderr -Tnvd nvd.task/check :classpath "\"$(lein classpath)\"" :config-filename \"".nvd-config.json\""
 
   docker-build:
     runs-on: ubuntu-latest
