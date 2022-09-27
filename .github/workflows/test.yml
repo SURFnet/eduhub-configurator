@@ -51,7 +51,7 @@ jobs:
 
     - name: Check dependencies for CVEs
       run: |
-        clojure -J-Dclojure.main.report=stderr -Tnvd nvd.task/check :classpath "\"$(lein classpath)\"" :config-filename \"".nvd-config.json\""
+        clojure -J-Dclojure.main.report=stderr -Tnvd nvd.task/check :classpath "\"$(lein classpath)\"" :config-filename "\".nvd-config.json\""
 
   docker-build:
     runs-on: ubuntu-latest
