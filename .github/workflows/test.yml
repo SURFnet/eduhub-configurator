@@ -40,18 +40,8 @@ jobs:
     - name: Check dependency freshness
       run: lein check-deps
 
-    - name: Install clojure-tools
-      uses: DeLaGuardo/setup-clojure@master
-      with:
-        cli: latest
-
-    - name: Install clojure-nvd
-      run: |
-        clojure -Ttools install nvd-clojure/nvd-clojure '{:mvn/version "RELEASE"}' :as nvd
-
-    - name: Check dependencies for CVEs
-      run: |
-        clojure -J-Dclojure.main.report=stderr -Tnvd nvd.task/check :classpath "\"$(lein classpath)\"" :config-filename "\".nvd-config.json\""
+    - name: NVD clojure
+      uses: jomco/nvd-clojure-action@v0
 
   docker-build:
     runs-on: ubuntu-latest
