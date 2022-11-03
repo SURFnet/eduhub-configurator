@@ -28,7 +28,7 @@
                  [environ "1.2.0"]
                  [hiccup "1.0.5"]
                  [nl.jomco/envopts "0.0.4"]
-                 [nl.jomco/ring-trace-context "0.0.2"]
+                 [nl.jomco/ring-trace-context "0.0.8"]
                  [org.clojure/clojure "1.11.1"]
                  [org.clojure/data.json "2.4.0"]
                  [org.clojure/data.xml "0.0.8"]
@@ -50,12 +50,12 @@
                        :target-path  "target/uberjar"
                        :uberjar-name "ooapi-gateway-configurator.jar"}
              :dev     {:source-paths ["dev"]
-                       :dependencies [[clj-kondo "2022.10.05"]
+                       :dependencies [[clj-kondo "2022.11.02"]
                                       [org.clojure/tools.namespace "1.3.0"]
                                       [ring/ring-json "0.5.1"]
                                       [ring/ring-mock "0.4.0"]]
                        :plugins      [[lein-ancient "0.7.0"]]
                        :aliases      {"lint"  ["run" "-m" "clj-kondo.main" "--lint" "src"]
-                                      "check-deps" ["ancient" "check" ":exclude" "security"]}}}
+                                      "check-deps" ["ancient" "check" ":no-profiles" ":exclude" "security"]}}}
 
   :repl-options {:init-ns user})
