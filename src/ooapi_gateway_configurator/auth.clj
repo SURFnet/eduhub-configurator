@@ -39,8 +39,8 @@
   https://idp.diy.surfconext.nl/showusers.php"
   (:require [compojure.core :refer [defroutes POST]]
             [compojure.response :refer [render]]
+            [nl.jomco.http-status-codes :as http-status]
             [ooapi-gateway-configurator.form :as form]
-            [ooapi-gateway-configurator.http :as status]
             [ooapi-gateway-configurator.user-info :as user-info]
             [ring.middleware.oauth2 :as oauth2]
             [ring.util.response :as response]))
@@ -94,10 +94,10 @@
         (handler request)
         (->  "You're not authorized to access this resource"
              (render request)
-             (response/status status/forbidden)))
+             (response/status http-status/forbidden)))
       (-> "You're not logged in"
           (render request)
-          (response/status status/unauthorized)))))
+          (response/status http-status/unauthorized)))))
 
 (defn auth-component
   "Login/logout block for html interface."

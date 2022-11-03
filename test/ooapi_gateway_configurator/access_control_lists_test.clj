@@ -15,8 +15,8 @@
 
 (ns ooapi-gateway-configurator.access-control-lists-test
   (:require [clojure.test :refer [deftest is testing use-fixtures]]
+            [nl.jomco.http-status-codes :as http-status]
             [ooapi-gateway-configurator.access-control-lists :as access-control-lists]
-            [ooapi-gateway-configurator.http :as http]
             [ooapi-gateway-configurator.model :as model]
             [ooapi-gateway-configurator.store-test :as store-test]
             [ring.middleware.nested-params :refer [wrap-nested-params]]
@@ -41,10 +41,10 @@
 
 (deftest do-detail
   (testing "GET /applications/fred/access-control-list"
-    (is (= http/not-found (:status (do-get "/applications/DoesNotExist/access-control-list")))
+    (is (= http-status/not-found (:status (do-get "/applications/DoesNotExist/access-control-list")))
         "Not Found")
     (let [res (do-get "/applications/fred/access-control-list")]
-      (is (= http/ok (:status res))
+      (is (= http-status/ok (:status res))
           "OK")
       (is (re-find #"Edit Access Control List" (:body res))
           "includes header")
@@ -53,10 +53,10 @@
       (is (re-find #"Basic.Auth.Backend" (:body res))
           "includes institution ID")))
   (testing "GET /institutions/Basic.Auth.Backend/access-control-list"
-    (is (= http/not-found (:status (do-get "/institutions/DoesNotExist/access-control-list")))
+    (is (= http-status/not-found (:status (do-get "/institutions/DoesNotExist/access-control-list")))
         "Not Found")
     (let [res (do-get "/institutions/Basic.Auth.Backend/access-control-list")]
-      (is (= http/ok (:status res))
+      (is (= http-status/ok (:status res))
           "OK")
       (is (re-find #"Basic.Auth.Backend" (:body res))
           "includes institution ID")
@@ -66,10 +66,10 @@
 (deftest do-update
   (testing "applications"
     (testing "POST /applications/fred/access-control-list"
-      (is (= http/not-found (:status (do-post "/applications/DoesNotExist/access-control-list")))
+      (is (= http-status/not-found (:status (do-post "/applications/DoesNotExist/access-control-list")))
           "Not Found")
       (let [res (do-post "/applications/fred/access-control-list" {"access-control-list[Basic.Auth.Backend][]" "/"})]
-        (is (= http/see-other (:status res))
+        (is (= http-status/see-other (:status res))
             "see other")
         (is (= "../fred" (-> res :headers (get "Location")))
             "redirected back to access-control-lists list")
@@ -82,7 +82,7 @@
       (let [res (do-post "/applications/fred/access-control-list"
                          {"select-all-Basic.Auth.Backend"          ".."
                           "access-control-list[Api.Key.Backend][]" "/"})]
-        (is (= http/ok (:status res))
+        (is (= http-status/ok (:status res))
             "OK")
         (let [basic-auth-backend-checkboxes (re-seq #"<input [^>]*?\bname=\"access-control-list\[Basic.Auth.Backend\]\[\]\".*?>"
                                                     (:body res))]
@@ -103,7 +103,7 @@
                          {"select-none-Basic.Auth.Backend"            ".."
                           "access-control-list[Basic.Auth.Backend][]" "/"
                           "access-control-list[Api.Key.Backend][]"    "/"})]
-        (is (= http/ok (:status res))
+        (is (= http-status/ok (:status res))
             "OK")
         (let [basic-auth-backend-checkboxes (re-seq #"<input [^>]*?\bname=\"access-control-list\[Basic.Auth.Backend\]\[\]\".*?>"
                                                     (:body res))]
@@ -119,10 +119,10 @@
 
   (testing "institutions"
     (testing "POST /institutions/Basic.Auth.Backend/access-control-list"
-      (is (= http/not-found (:status (do-post "/institutions/DoesNotExist/access-control-list")))
+      (is (= http-status/not-found (:status (do-post "/institutions/DoesNotExist/access-control-list")))
           "Not Found")
       (let [res (do-post "/institutions/Basic.Auth.Backend/access-control-list" {"access-control-list[fred][]" "/"})]
-        (is (= http/see-other (:status res))
+        (is (= http-status/see-other (:status res))
             "see other")
         (is (= "../Basic.Auth.Backend" (-> res :headers (get "Location")))
             "redirected back to access-control-lists list")
@@ -135,7 +135,7 @@
       (let [res (do-post "/institutions/Basic.Auth.Backend/access-control-list"
                          {"select-all-fred"               ".."
                           "access-control-list[barney][]" "/"})]
-        (is (= http/ok (:status res))
+        (is (= http-status/ok (:status res))
             "OK")
         (let [basic-auth-backend-checkboxes (re-seq #"<input [^>]*?\bname=\"access-control-list\[fred\]\[\]\".*?>"
                                                     (:body res))]
@@ -156,7 +156,7 @@
                          {"select-none-fred"              ".."
                           "access-control-list[fred][]"   "/"
                           "access-control-list[barney][]" "/"})]
-        (is (= http/ok (:status res))
+        (is (= http-status/ok (:status res))
             "OK")
         (let [basic-auth-backend-checkboxes (re-seq #"<input [^>]*?\bname=\"access-control-list\[fred\]\[\]\".*?>"
                                                     (:body res))]

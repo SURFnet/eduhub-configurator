@@ -17,9 +17,9 @@
   (:refer-clojure :exclude [time])
   (:require [compojure.response :refer [render]]
             [hiccup.util :refer [escape-html]]
+            [nl.jomco.http-status-codes :as http-status]
             [ooapi-gateway-configurator.auth :as auth]
             [ooapi-gateway-configurator.bare-layout :refer [bare-layout header]]
-            [ooapi-gateway-configurator.http :as http]
             [ooapi-gateway-configurator.store :as store]
             [ring.util.response :refer [status]]))
 
@@ -45,7 +45,7 @@
        [:p (escape-html msg)]]
       (layout req)
       (render req)
-      (status http/not-found)))
+      (status http-status/not-found)))
 
 (defn exception
   [id req]
@@ -56,4 +56,4 @@
         [:p "An internal error occurred. The details have been logged with error id " [:code (escape-html id)] "."]]]
       (bare-layout (str "Error ID " id))
       (render req)
-      (status http/internal-server-error)))
+      (status http-status/internal-server-error)))

@@ -18,7 +18,7 @@
   (:require [compojure.response :refer [render]]
             [hiccup.page :refer [html5]]
             [hiccup.util :refer [escape-html]]
-            [ooapi-gateway-configurator.http :as http]
+            [nl.jomco.http-status-codes :as http-status]
             [ring.util.response :refer [status]]))
 
 (def title "OOAPI Gateway Configurator")
@@ -51,4 +51,4 @@
         [:p "An internal error occurred. The details have been logged with error id " [:code (escape-html id)] "."]]]
       (bare-layout (str "Error ID " id))
       (render req)
-      (status http/internal-server-error)))
+      (status http-status/internal-server-error)))

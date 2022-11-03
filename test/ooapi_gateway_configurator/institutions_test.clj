@@ -15,7 +15,7 @@
 
 (ns ooapi-gateway-configurator.institutions-test
   (:require [clojure.test :refer [deftest testing is use-fixtures]]
-            [ooapi-gateway-configurator.http :as http]
+            [nl.jomco.http-status-codes :as http-status]
             [ooapi-gateway-configurator.institutions :as institutions]
             [ooapi-gateway-configurator.model :as model]
             [ooapi-gateway-configurator.store-test :as store-test]
@@ -42,17 +42,17 @@
 (deftest index-page
   (testing "GET /institutions/"
     (let [res (do-get "/institutions/")]
-      (is (= http/ok (:status res))
+      (is (= http-status/ok (:status res))
           "OK")
       (is (re-find #"Basic.Auth.Backend" (:body res))
           "lists Basic.Auth.Backend"))))
 
 (deftest detail-page
   (testing "GET /institutions/Basic.Auth.Backend"
-    (is (= http/not-found (:status (do-get "/institutions/DoesNotExist")))
+    (is (= http-status/not-found (:status (do-get "/institutions/DoesNotExist")))
         "Not Found")
     (let [res (do-get "/institutions/Basic.Auth.Backend")]
-      (is (= http/ok (:status res))
+      (is (= http-status/ok (:status res))
           "OK")
       (is (re-find #"Edit Institution" (:body res))
           "includes header")
@@ -68,10 +68,10 @@
 
 (deftest delete-institution
   (testing "DELETE /institutions/Basic.Auth.Backend"
-    (is (= http/not-found (:status (do-delete "/institutions/DoesNotExist")))
+    (is (= http-status/not-found (:status (do-delete "/institutions/DoesNotExist")))
         "Not Found")
     (let [res (do-delete "/institutions/Basic.Auth.Backend")]
-      (is (= http/see-other (:status res))
+      (is (= http-status/see-other (:status res))
           "see other")
       (is (= "." (-> res :headers (get "Location")))
           "redirected back to institutions list")
@@ -87,7 +87,7 @@
     (let [res (do-post path
                        {:id  "test"
                         :url "bad"})]
-      (is (= http/not-acceptable (:status res))
+      (is (= http-status/not-acceptable (:status res))
           "not acceptable")
       (is (re-find #"flash" (:body res))
           "includes error message")
@@ -100,7 +100,7 @@
                        {"id"         "test"
                         "url"        "https://example.com/test"
                         "add-header" ".."})]
-      (is (= http/ok (:status res))
+      (is (= http-status/ok (:status res))
           "OK")
       (is (re-find #"<li [^>]*?class=\"header\"" (:body res))
           "has header input")
@@ -115,7 +115,7 @@
                         "header-names"    ["First" "Second"]
                         "header-values"   ["1" "2"]
                         "delete-header-0" ".."})]
-      (is (= http/ok (:status res))
+      (is (= http-status/ok (:status res))
           "OK")
       (is (= 1 (count (re-seq #"<li [^>]*?class=\"header\"" (:body res))))
           "has header input")
@@ -134,7 +134,7 @@
                         "url"         "https://example.com/test"
                         "auth"        "basic"
                         "select-auth" ".."})]
-      (is (= http/ok (:status res))
+      (is (= http-status/ok (:status res))
           "OK")
       (is (re-find #"<input.*?name=\"basic-auth-user\"" (:body res))
           "has basic auth input")
@@ -144,7 +144,7 @@
                         "url"         "https://example.com/test"
                         "auth"        "oauth"
                         "select-auth" ".."})]
-      (is (= http/ok (:status res))
+      (is (= http-status/ok (:status res))
           "OK")
       (is (re-find #"<input.*?name=\"oauth-url\"" (:body res))
           "has oauth URL input")
@@ -152,7 +152,7 @@
 
 (deftest update-institution
   (testing "POST /institutions/Basic.Auth.Backend"
-    (is (= http/not-found (:status (do-post "/institutions/DoesNotExist")))
+    (is (= http-status/not-found (:status (do-post "/institutions/DoesNotExist")))
         "Not Found")
     (let [res (do-post "/institutions/Basic.Auth.Backend"
                        {:id              "test"
@@ -162,7 +162,7 @@
                         :basic-auth-pass "betty"
                         :header-names    ["X-test" "X-other" ""]
                         :header-values   ["1" "2" ""]})]
-      (is (= http/see-other (:status res))
+      (is (= http-status/see-other (:status res))
           "see other")
       (is (= "." (-> res :headers (get "Location")))
           "redirected back to institutions list")
@@ -205,7 +205,7 @@
 (deftest new-institution
   (testing "GET /institutions/new"
     (let [res (do-get "/institutions/new")]
-      (is (= http/ok (:status res))
+      (is (= http-status/ok (:status res))
           "OK")
       (is (re-find #"<h2>Create Institution</h2>" (:body res))
           "has create title")))
@@ -218,7 +218,7 @@
                         "oauth-url"           "https://oauth/test"
                         "oauth-client-id"     "fred"
                         "oauth-client-secret" "wilma"})]
-      (is (= http/see-other (:status res))
+      (is (= http-status/see-other (:status res))
           "see other")
       (is (= "." (-> res :headers (get "Location")))
           "redirected back to institutions list")

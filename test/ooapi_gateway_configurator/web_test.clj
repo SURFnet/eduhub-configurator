@@ -15,7 +15,7 @@
 
 (ns ooapi-gateway-configurator.web-test
   (:require [clojure.test :refer [deftest testing is]]
-            [ooapi-gateway-configurator.http :as http]
+            [nl.jomco.http-status-codes :as http-status]
             [ooapi-gateway-configurator.web :as web]
             [ring.middleware.defaults :refer [site-defaults wrap-defaults]]
             [ring.mock.request :refer [request]]))
@@ -33,9 +33,9 @@
 (deftest handler
   (testing "GET /"
     (let [res (do-get "/")]
-      (is (= http/ok (:status res))
+      (is (= http-status/ok (:status res))
           "OK")))
 
   (testing "Not found"
-    (is (= http/not-found
+    (is (= http-status/not-found
            (:status (do-get "/does-not-exist"))))))

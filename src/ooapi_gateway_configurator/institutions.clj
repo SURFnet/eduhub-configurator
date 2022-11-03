@@ -19,9 +19,9 @@
             [compojure.response :refer [render]]
             [datascript.core :as d]
             [hiccup.util :refer [escape-html]]
+            [nl.jomco.http-status-codes :as http-status]
             [ooapi-gateway-configurator.form :as form]
             [ooapi-gateway-configurator.html :refer [layout not-found]]
-            [ooapi-gateway-configurator.http :as http]
             [ooapi-gateway-configurator.model :as model]
             [ring.util.codec :refer [url-encode]]
             [ring.util.response :refer [redirect status]]))
@@ -354,7 +354,7 @@
           (detail-page orig-id :dirty true)
           (layout (assoc req :flash (str "Invalid input;\n" (s/join ",\n" errors))) subtitle)
           (render req)
-          (status http/not-acceptable))
+          (status http-status/not-acceptable))
 
       (and (not= id orig-id) (d/entid model [:institution/id id]))
       (-> params

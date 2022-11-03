@@ -18,9 +18,9 @@
             [clj-http.cookies :refer [cookie-store]]
             [clojure.test :refer [deftest is testing]]
             [compojure.core :refer [GET wrap-routes]]
+            [nl.jomco.http-status-codes :as http-status]
             [ooapi-gateway-configurator.auth :as auth]
             [ooapi-gateway-configurator.auth-test.provider :as provider]
-            [ooapi-gateway-configurator.http :as status]
             [ring.adapter.jetty :refer [run-jetty]]
             [ring.middleware.defaults :refer [site-defaults wrap-defaults]]))
 
@@ -45,7 +45,7 @@
 (defn- mk-test-handler
   []
   (-> (GET "/ok" _
-           {:status status/ok
+           {:status http-status/ok
             :body   "OK"})
       (wrap-routes auth/wrap-member-of #{"flintstones"})
       (auth/wrap-authentication {:authorize-uri    "http://localhost:9991/oidc/authorize"
@@ -83,13 +83,13 @@
                    provider (run (mk-provider "flintstones") 9991) (.stop provider)]
       (testing "unauthorized with not logged in"
         (let [response (do-get "http://localhost:9990/ok")]
-          (is (= status/unauthorized (:status response)))))
+          (is (= http-status/unauthorized (:status response)))))
       (testing "logging in"
         (let [response (do-get "http://localhost:9990/oauth2/conext")]
-          (is (= status/ok (:status response)))))
+          (is (= http-status/ok (:status response)))))
       (testing "allowed in now"
         (let [response (do-get "http://localhost:9990/ok")]
-          (is (= status/ok (:status response))))))))
+          (is (= http-status/ok (:status response))))))))
 
 (deftest auth-unauthorized
   (let [handler (-> (mk-test-handler))
@@ -98,10 +98,10 @@
                    provider (run (mk-provider "simpsons") 9991) (.stop provider)]
       (testing "unauthorized with not logged in"
         (let [response (do-get "http://localhost:9990/ok")]
-          (is (= status/unauthorized (:status response)))))
+          (is (= http-status/unauthorized (:status response)))))
       (testing "logging in"
         (let [response (do-get "http://localhost:9990/oauth2/conext")]
-          (is (= status/ok (:status response)))))
+          (is (= http-status/ok (:status response)))))
       (testing "forbidden"
         (let [response (do-get "http://localhost:9990/ok")]
-          (is (= status/forbidden (:status response))))))))
+          (is (= http-status/forbidden (:status response))))))))

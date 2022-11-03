@@ -16,7 +16,7 @@
 (ns ooapi-gateway-configurator.network-test
   (:require [clojure.data.json :as json]
             [clojure.test :refer [deftest testing is use-fixtures]]
-            [ooapi-gateway-configurator.http :as http]
+            [nl.jomco.http-status-codes :as http-status]
             [ooapi-gateway-configurator.network :as network]
             [ooapi-gateway-configurator.store-test :as store-test]
             [ring.mock.request :refer [request]]))
@@ -36,7 +36,7 @@
 (deftest network-page
   (testing "GET /network/"
     (let [res (do-get "/network/")]
-      (is (= http/ok (:status res))
+      (is (= http-status/ok (:status res))
           "OK")
       (is (get-in res [:headers "Content-Security-Policy"])
           "has a custom CSP header"))))
@@ -44,7 +44,7 @@
 (deftest network-json
   (testing "GET /network.json"
     (let [res (do-get "/network.json")]
-      (is (= http/ok (:status res))
+      (is (= http-status/ok (:status res))
           "OK")
       (is (= "application/json; charset=utf-8"
              (get-in res [:headers "Content-Type"]))
@@ -58,7 +58,7 @@
 (deftest network-dot
   (testing "GET /network.dot"
     (let [res (do-get "/network.dot")]
-      (is (= http/ok (:status res))
+      (is (= http-status/ok (:status res))
           "OK")
       (is (= "text/x-graphviz; charset=utf-8"
              (get-in res [:headers "Content-Type"]))

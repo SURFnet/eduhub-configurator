@@ -21,7 +21,7 @@
   code flow."
   (:require [clojure.tools.logging :as log]
             [compojure.core :refer [GET POST routes]]
-            [ooapi-gateway-configurator.http :as status]
+            [nl.jomco.http-status-codes :as http-status]
             [ring.middleware.defaults :refer [api-defaults wrap-defaults]]
             [ring.middleware.json :refer [wrap-json-response]]
             [ring.util.codec :as codec]
@@ -46,13 +46,13 @@
                   (let [uri (str redirect_uri "?" (codec/form-encode {:code code :state state}))]
                     (log/trace :redirect uri)
                     (response/redirect uri)))
-                {:status status/forbidden
+                {:status http-status/forbidden
                  :body   {:error "Invalid client id"}}))
          (POST "/oidc/token" _
-               {:status status/ok
+               {:status http-status/ok
                 :body {:access_token "fake"}})
          (GET "/oidc/userinfo" _
-              {:status status/ok
+              {:status http-status/ok
                :body user-info}))
         wrap-trace
         wrap-json-response

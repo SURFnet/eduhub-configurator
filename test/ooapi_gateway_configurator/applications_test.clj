@@ -15,8 +15,8 @@
 
 (ns ooapi-gateway-configurator.applications-test
   (:require [clojure.test :refer [deftest is testing use-fixtures]]
+            [nl.jomco.http-status-codes :as http-status]
             [ooapi-gateway-configurator.applications :as applications]
-            [ooapi-gateway-configurator.http :as http]
             [ooapi-gateway-configurator.model :as model]
             [ooapi-gateway-configurator.store-test :as store-test]
             [ring.mock.request :refer [request]]))
@@ -42,17 +42,17 @@
 (deftest index-page
   (testing "GET /applications/"
     (let [res (do-get "/applications/")]
-      (is (= http/ok (:status res))
+      (is (= http-status/ok (:status res))
           "OK")
       (is (re-find #"fred" (:body res))
           "lists fred"))))
 
 (deftest detail-page
   (testing "GET /applications/fred"
-    (is (= http/not-found (:status (do-get "/applications/DoesNotExist")))
+    (is (= http-status/not-found (:status (do-get "/applications/DoesNotExist")))
         "Not Found")
     (let [res (do-get "/applications/fred")]
-      (is (= http/ok (:status res))
+      (is (= http-status/ok (:status res))
           "OK")
       (is (re-find #"Edit Application" (:body res))
           "includes header")
@@ -63,10 +63,10 @@
 
 (deftest delete-application
   (testing "POST /applications/fred"
-    (is (= http/not-found (:status (do-delete "/applications/DoesNotExist")))
+    (is (= http-status/not-found (:status (do-delete "/applications/DoesNotExist")))
         "Not Found")
     (let [res (do-delete "/applications/fred")]
-      (is (= http/see-other (:status res))
+      (is (= http-status/see-other (:status res))
           "see other")
       (is (= "." (-> res :headers (get "Location")))
           "redirected back to applications list")
@@ -76,11 +76,11 @@
 
 (deftest update-application
   (testing "POST /applications/fred"
-    (is (= http/not-found (:status (do-post "/applications/DoesNotExist")))
+    (is (= http-status/not-found (:status (do-post "/applications/DoesNotExist")))
         "Not Found")
     (let [res (do-post "/applications/fred"
                        {"id" "betty"})]
-      (is (= http/see-other (:status res))
+      (is (= http-status/see-other (:status res))
           "see other")
       (is (= "." (-> res :headers (get "Location")))
           "redirected back to applications list")
@@ -94,7 +94,7 @@
   (testing "errors"
     (let [res (do-post "/applications/fred"
                        {"id" ""})]
-      (is (= http/not-acceptable (:status res))
+      (is (= http-status/not-acceptable (:status res))
           "not acceptable")
       (is (re-find #"flash" (:body res))
           "includes error message")))
@@ -103,7 +103,7 @@
     (let [res (do-post "/applications/fred"
                        {"id"             "fred"
                         "reset-password" ".."})]
-      (is (= http/ok (:status res))
+      (is (= http-status/ok (:status res))
           "OK")
       (is (re-find #"<input [^>]*?name=\"password\"" (:body res))
           "has password input"))))
@@ -111,7 +111,7 @@
 (deftest new-application
   (testing "GET /applications/new"
     (let [res (do-get "/applications/new")]
-      (is (= http/ok (:status res))
+      (is (= http-status/ok (:status res))
           "OK")
       (is (re-find #"Create Application" (:body res))
           "includes header")
@@ -122,7 +122,7 @@
     (let [res (do-post "/applications/new"
                        {"id"       "test"
                         "password" "0123456789abcdef0123456789abcdef"})]
-      (is (= http/see-other (:status res))
+      (is (= http-status/see-other (:status res))
           "see other")
       (is (= "." (-> res :headers (get "Location")))
           "redirected back to applications list")

@@ -14,8 +14,8 @@
 ;; with this program. If not, see http://www.gnu.org/licenses/.
 
 (ns ooapi-gateway-configurator.auth-pages
-  (:require [ooapi-gateway-configurator.html :refer [layout]]
-            [ooapi-gateway-configurator.http :as status]
+  (:require [nl.jomco.http-status-codes :as http-status]
+            [ooapi-gateway-configurator.html :refer [layout]]
             [ring.util.response :as response]))
 
 (defn- unauthorized-page
@@ -42,10 +42,10 @@
   (fn [request]
     (let [{:keys [status] :as response} (f request)]
       (cond
-        (= status status/forbidden)
+        (= status http-status/forbidden)
         (render-page response (unauthorized-page) request)
 
-        (= status status/unauthorized) ;; HTTP status names are messed up; unauthorized means not logged in here
+        (= status http-status/unauthorized) ;; HTTP status names are messed up; unauthorized means not logged in here
         (render-page response (unauthenticated-page) request)
 
         :else

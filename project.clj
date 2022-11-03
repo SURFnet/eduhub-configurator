@@ -28,6 +28,7 @@
                  [environ "1.2.0"]
                  [hiccup "1.0.5"]
                  [nl.jomco/envopts "0.0.4"]
+                 [nl.jomco/clj-http-status-codes "0.1"]
                  [nl.jomco/ring-trace-context "0.0.8"]
                  [org.clojure/clojure "1.11.1"]
                  [org.clojure/data.json "2.4.0"]
@@ -40,7 +41,7 @@
 
                  ;; CVE-2020-36518, CVE-2022-42003, CVE-2022-42004
                  ;; (pulled in by ring-oauth2 via cheshire)
-                 [com.fasterxml.jackson.core/jackson-databind "2.14.0-rc1" :upgrade :security]]
+                 [com.fasterxml.jackson.core/jackson-databind "2.14.0" :upgrade :security]]
 
   :main ^:skip-aot ooapi-gateway-configurator.core
 
