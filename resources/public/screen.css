@@ -108,10 +108,10 @@ section {
 }
 
 ul {
-    padding: 0;
+    padding: 0 0 0 1em;
 }
 li {
-    list-style-position: inside;
+    list-style-position: outside;
 }
 
 fieldset legend {
@@ -139,8 +139,7 @@ select, option {
 }
 textarea {
     width: calc(100% - 2rem);
-    font-size: 1rem;
-    line-height: 1.2rem;
+    font-size: smaller;
     padding: .5rem;
     resize: vertical;
 }
@@ -322,7 +321,17 @@ label.path, label.version {
     background-color: #a00;
     color: white;
 }
-
 .hidden, input.hidden {
     display: none;
+}
+
+.index .notes {
+    padding: .5rem;
+    margin: .25em 0 .5em 0;
+    background: #fafafa;
+    box-shadow: inset 0 0 .25em rgba(0,0,0,.1);
+    max-height: 15em;
+    overflow-y: auto;
+    white-space: pre-line;
+    font-size: smaller;
 }

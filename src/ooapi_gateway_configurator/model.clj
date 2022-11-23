@@ -231,9 +231,27 @@
   [model]
   (set (d/q '[:find [?id ...] :where [_ :app/id ?id]] model)))
 
+(defn app-by-id
+  [model id]
+  (d/pull model '[*] [:app/id id]))
+
+(defn apps
+  [model]
+  (->> (d/q '[:find [(pull ?e [*]) ...] :where [?e :app/id _]] model)
+       set))
+
 (defn institution-ids
   [model]
   (set (d/q '[:find [?id ...] :where [_ :institution/id ?id]] model)))
+
+(defn institution-by-id
+  [model id]
+  (d/pull model '[*] [:institution/id id]))
+
+(defn institutions
+  [model]
+  (->> (d/q '[:find [(pull ?e [*]) ...] :where [?e :institution/id _]] model)
+       set))
 
 (defn remove-app
   [model app-id]

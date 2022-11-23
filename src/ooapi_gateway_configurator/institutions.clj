@@ -254,15 +254,18 @@
 
 (defn- index-page
   "List of institution hiccup."
-  [institution-ids]
+  [institutions]
   [:div.index
    [:nav
     [:a {:href "/"} "⌂"]
     " / "
     [:a.current "Institutions"]]
    [:ul
-    (for [id (sort institution-ids)]
-      [:li [:a {:href (url-encode id)} (escape-html id)]])]
+    (for [{:institution/keys [id
+                              notes]} (sort-by :institution/id institutions)]
+      [:li [:a {:href (url-encode id)} (escape-html id)]
+       (when-not (s/blank? notes)
+         [:div.notes (escape-html notes)])])]
    [:div.actions
     [:a {:href :new, :class "button"} "New institution"]]])
 
@@ -375,7 +378,7 @@
 (defroutes handler
   (GET "/institutions/" {:keys [model] :as req}
        (-> model
-           (model/institution-ids)
+           (model/institutions)
            (index-page)
            (layout req "institutions")))
 
@@ -390,8 +393,7 @@
   (GET "/institutions/:orig-id" {:keys             [model]
                                  {:keys [orig-id]} :params
                                  :as               req}
-
-       (if-let [institution (d/pull model '[*] [:institution/id orig-id])]
+       (if-let [institution (model/institution-by-id model orig-id)]
          (-> institution
              (->params)
              (detail-page orig-id)

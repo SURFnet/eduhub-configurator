@@ -45,7 +45,9 @@
       (is (= http-status/ok (:status res))
           "OK")
       (is (re-find #"Basic.Auth.Backend" (:body res))
-          "lists Basic.Auth.Backend"))))
+          "lists Basic.Auth.Backend")
+      (is (re-find #"<div[^>]+class=\"notes\"[^>]*>Fred &lt;3 Wilma" (:body res))
+          "includes notes"))))
 
 (deftest detail-page
   (testing "GET /institutions/Basic.Auth.Backend"

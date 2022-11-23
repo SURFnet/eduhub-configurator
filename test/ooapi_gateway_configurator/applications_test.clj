@@ -45,7 +45,9 @@
       (is (= http-status/ok (:status res))
           "OK")
       (is (re-find #"fred" (:body res))
-          "lists fred"))))
+          "lists fred")
+      (is (re-find #"<div[^>]+class=\"notes\"[^>]*>Pebbles &lt;3 Bamm-Bamm" (:body res))
+          "includes notes"))))
 
 (deftest detail-page
   (testing "GET /applications/pebbles"

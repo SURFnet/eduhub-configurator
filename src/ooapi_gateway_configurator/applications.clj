@@ -109,15 +109,17 @@
 
 (defn- index-page
   "List of applications hiccup."
-  [application-ids]
+  [applications]
   [:div.index
    [:nav
     [:a {:href "/"} "⌂"]
     " / "
     [:a.current "Applications"]]
    [:ul
-    (for [id (sort application-ids)]
-      [:li [:a {:href (url-encode id)} (escape-html id)]])]
+    (for [{:app/keys [id notes]} (sort-by :app/id applications)]
+      [:li [:a {:href (url-encode id)} (escape-html id)]
+       (when-not (s/blank? notes)
+         [:div.notes (escape-html notes)])])]
    [:div.actions
     [:a {:href :new, :class "button"} "New application"]]])
 
@@ -204,48 +206,50 @@
                                    :orig-id orig-id)]
                    :flash (str (if orig-id "Updated" "Created") " application '" id "'")))))))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 (defroutes handler
   (GET "/applications/" {:keys [model] :as req}
-    (-> model
-        (model/app-ids)
-        (index-page)
-        (layout req "applications")))
+       (-> model
+           (model/apps)
+           (index-page)
+           (layout req "applications")))
 
   (GET "/applications/new" req
-    (-> {}
-        (detail-page nil)
-        (layout req (subtitle nil))))
+       (-> {}
+           (detail-page nil)
+           (layout req (subtitle nil))))
 
   (POST "/applications/new" req
-    (create-or-update req))
+        (create-or-update req))
 
   (GET "/applications/:orig-id" {:keys             [model]
                                  {:keys [orig-id]} :params
                                  :as               req}
-    (if-let [application (d/pull model '[*] [:app/id orig-id])]
-      (-> application
-          (->params)
-          (detail-page orig-id)
-          (layout req (subtitle orig-id)))
-      (not-found (str "Application '" orig-id "' not found..")
-                 req)))
+       (if-let [application (model/app-by-id model orig-id)]
+         (-> application
+             (->params)
+             (detail-page orig-id)
+             (layout req (subtitle orig-id)))
+         (not-found (str "Application '" orig-id "' not found..")
+                    req)))
 
   (POST "/applications/:orig-id" {:keys             [model]
                                   {:keys [orig-id]} :params
                                   :as               req}
-    (if (d/entid model [:app/id orig-id])
-      (create-or-update req)
-      (not-found (str "Application '" orig-id "' not found..")
-                 req)))
+        (if (d/entid model [:app/id orig-id])
+          (create-or-update req)
+          (not-found (str "Application '" orig-id "' not found..")
+                     req)))
 
   (DELETE "/applications/:id" {:keys        [model]
                                {:keys [id]} :params
                                :as          req}
-    (if (d/entid model [:app/id id])
-      (-> "."
-          (redirect :see-other)
-          (assoc :events [{:event/type :remove-app
-                           :app/id id}]
-                 :flash (str "Deleted application '" id "'")))
-      (not-found (str "Application '" id "' not found..")
-                 req))))
+          (if (d/entid model [:app/id id])
+            (-> "."
+                (redirect :see-other)
+                (assoc :events [{:event/type :remove-app
+                                 :app/id id}]
+                       :flash (str "Deleted application '" id "'")))
+            (not-found (str "Application '" id "' not found..")
+                       req))))
