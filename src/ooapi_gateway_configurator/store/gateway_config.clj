@@ -30,10 +30,12 @@
         (into (map (fn [p]
                      {:path/spec p})
                    (-> config :apiEndpoints api :paths)))
-        (into (map (fn [[n {:keys [passwordSalt passwordHash]}]]
-                     {:app/id (name n) ;; name is a keyword when read from the yaml
-                      :app/password-salt passwordSalt
-                      :app/password-hash passwordHash})
+        (into (map (fn [[n {:keys [notes passwordSalt passwordHash]}]]
+                     (cond-> {:app/id (name n) ;; name is a keyword when read from the yaml
+                              :app/password-salt passwordSalt
+                              :app/password-hash passwordHash}
+                       ;; datomic/datascript do not allow nil values
+                       (seq notes) (assoc :app/notes notes)))
                    (klist/get-in policies [:gatekeeper :action :apps])))
         (into (map (fn [[n {:keys [proxyOptions url notes]}]]
                      (cond-> {:institution/id (name n) ;; name is a keyword when read from the yaml
@@ -75,8 +77,7 @@
                        (assert (not (string/blank? id)))
                        (assoc res id (cond-> {:url          url
                                               :proxyOptions proxy-options}
-                                       (seq notes)
-                                       (assoc :notes notes))))
+                                       (seq notes) (assoc :notes notes))))
                      {}
                      (d/q '[:find (pull ?e [*]) :where [?e :institution/id _]] model)))
 
@@ -92,8 +93,9 @@
 
       (klist/update-in [:pipelines (keyword pipeline) :policies :gatekeeper]
                        klist/assoc-in [:action :apps]
-                       (reduce (fn ->app [res [{:app/keys [id password-hash password-salt]}]]
-                                 (assoc res id {:passwordHash password-hash
-                                                :passwordSalt password-salt}))
+                       (reduce (fn ->app [res [{:app/keys [id notes password-hash password-salt]}]]
+                                 (assoc res id (cond-> {:passwordHash password-hash
+                                                        :passwordSalt password-salt}
+                                                 (seq notes) (assoc :notes notes))))
                                {}
                                (d/q '[:find (pull ?a [*]) :where [?a :app/id _]] model)))))

@@ -59,8 +59,14 @@
 (deftest fetch
   (let [{:keys [model]} (#'store/fetch *config*)]
     (testing "applications"
-      (is (= #{"fred" "barney" "bubbles"}
-             (model/app-ids model))))
+      (is (= #{"fred" "barney" "pebbles"}
+             (model/app-ids model)))
+
+      (testing "shape"
+        (is (= #:app {:notes "Pebbles <3 Bamm-Bamm"}
+               (d/pull model
+                       '[:app/notes]
+                       [:app/id "pebbles"])))))
 
     (testing "institutions"
       (is (= #{"Basic.Auth.Backend" "Oauth-2.Backend" "Api.Key.Backend"}
@@ -76,7 +82,7 @@
                        [:institution/id "Basic.Auth.Backend"])))))
 
     (testing "access-control-lists"
-      (doseq [n ["fred" "barney" "bubbles"]]
+      (doseq [n ["fred" "barney" "pebbles"]]
         (is (seq (d/q '[:find ?xs
                         :in $ ?n
                         :where

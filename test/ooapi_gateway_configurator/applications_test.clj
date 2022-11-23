@@ -48,16 +48,19 @@
           "lists fred"))))
 
 (deftest detail-page
-  (testing "GET /applications/fred"
+  (testing "GET /applications/pebbles"
     (is (= http-status/not-found (:status (do-get "/applications/DoesNotExist")))
         "Not Found")
-    (let [res (do-get "/applications/fred")]
+    (let [res (do-get "/applications/pebbles")]
       (is (= http-status/ok (:status res))
           "OK")
       (is (re-find #"Edit Application" (:body res))
           "includes header")
-      (is (re-find #"fred" (:body res))
+      (is (re-find #"pebbles" (:body res))
           "includes application ID")
+      (is (re-find #"<textarea[^>]+name=\"notes\"[^>]*>Pebbles &lt;3 Bamm-Bamm"
+                   (:body res))
+          "includes form file with notes for institution")
       (is (re-find #"<input[^>]*value=\"Reset password\"" (:body res))
           "has reset password button"))))
 
@@ -88,7 +91,7 @@
           "has a message about update")
       (is (= :db/add (-> res ::model/tx first first))
           "rename")
-      (is (= #:app {:id "betty"} (-> res ::model/tx last))
+      (is (= #:app {:id "betty", :notes nil} (-> res ::model/tx last))
           "update entity")))
 
   (testing "errors"

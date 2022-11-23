@@ -18,21 +18,21 @@
             [ooapi-gateway-configurator.store.klist :as klist]))
 
 (deftest keylist
-  (is (klist/klist? [{:bubbles 1}
+  (is (klist/klist? [{:pebbles 1}
                      {:barney 2}
                      {:fred 3}]))
 
-  (is (not (klist/klist? {:bubbles 1})))
+  (is (not (klist/klist? {:pebbles 1})))
 
   (is (= 2
-         (klist/get [{:bubbles 1}
+         (klist/get [{:pebbles 1}
                      {:barney 2}
                      {:fred 3}]
                     :barney))
       "get on klist")
 
   (is (= 2
-         (klist/get {:bubbles 1
+         (klist/get {:pebbles 1
                      :barney  2
                      :fred    3}
                     :barney))
@@ -45,19 +45,19 @@
                        [:flintstones :fred]))
       "get-in on map with klist")
 
-  (is (= [{:bubbles 1}
+  (is (= [{:pebbles 1}
           {:barney :changed}
           {:fred 3}]
-         (klist/assoc [{:bubbles 1}
+         (klist/assoc [{:pebbles 1}
                        {:barney 2}
                        {:fred 3}]
                       :barney :changed))
       "assoc on klist")
 
-  (is (= {:bubbles 1
+  (is (= {:pebbles 1
           :barney  :changed
           :fred    3}
-         (klist/assoc {:bubbles 1
+         (klist/assoc {:pebbles 1
                        :barney  2
                        :fred    3}
                       :barney :changed))
@@ -72,19 +72,19 @@
                          [:flintstones :fred] :changed))
       "assoc-in on map of klists")
 
-  (is (= [{:bubbles 1}
+  (is (= [{:pebbles 1}
           {:barney 20}
           {:fred 3}]
-         (klist/update [{:bubbles 1}
+         (klist/update [{:pebbles 1}
                         {:barney 2}
                         {:fred 3}]
                        :barney * 10))
       "update on klist")
 
-  (is (= {:bubbles 1
+  (is (= {:pebbles 1
           :barney  20
           :fred    3}
-         (klist/update {:bubbles 1
+         (klist/update {:pebbles 1
                         :barney  2
                         :fred    3}
                        :barney * 10))

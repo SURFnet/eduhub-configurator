@@ -47,15 +47,17 @@
 
 (defn- ->params
   "Application model to form params."
-  [{:app/keys [password-salt password-hash id]}]
+  [{:app/keys [id notes password-salt password-hash]}]
   {"id"            id
+   "notes"         notes
    "password-salt" password-salt
    "password-hash" password-hash})
 
 (defn- params->
   "Form params to application model."
-  [{:strs [id password]}]
-  (into #:app {:id id}
+  [{:strs [id password notes]}]
+  (into #:app {:id id
+               :notes notes}
         (when password
           (let [salt (generate-random-string)]
             #:app {:password-salt salt
@@ -81,7 +83,7 @@
 
     :finally seq))
 
-(defn- form [{:strs [id reset-password]} orig-id]
+(defn- form [{:strs [id notes reset-password]} orig-id]
   (let [show-password (or (not orig-id) reset-password)]
     [[:div.field
       [:label {:for "id"} "ID "
@@ -89,6 +91,11 @@
       [:input {:type  "text", :pattern id-pattern-re, :required true
                :id    "id",   :name    "id"
                :value id}]]
+     [:div.field
+      [:label {:for "notes"} "Notes "
+       [:span.info "contact or other information about this application"]]
+      [:textarea {:name "notes", :rows 4}
+       (escape-html notes)]]
      [:div.field
       [:label {:for "password"} "Password "
        (when show-password

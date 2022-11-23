@@ -159,6 +159,7 @@
    ;; We list all attributes here even when they have no definition
    ;; datascript does not require this, but we can use it to filter
    ;; out unexpected attributes.
+   :app/notes                 {}
    :app/password-hash         {}
    :app/password-salt         {}
    :institution/notes         {}
