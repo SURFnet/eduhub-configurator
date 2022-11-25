@@ -21,7 +21,7 @@
 
   :dependencies [[ch.qos.logback.contrib/logback-jackson "0.1.5"]
                  [ch.qos.logback.contrib/logback-json-classic "0.1.5"]
-                 [ch.qos.logback/logback-classic "1.4.4"]
+                 [ch.qos.logback/logback-classic "1.4.5"]
                  [clj-commons/clj-yaml "1.0.26"]
                  [compojure "1.7.0"]
                  [datascript "1.3.15"]
@@ -41,7 +41,7 @@
 
                  ;; CVE-2020-36518, CVE-2022-42003, CVE-2022-42004
                  ;; (pulled in by ring-oauth2 via cheshire)
-                 [com.fasterxml.jackson.core/jackson-databind "2.14.0" :upgrade :security]]
+                 [com.fasterxml.jackson.core/jackson-databind "2.14.1" :upgrade :security]]
 
   :main ^:skip-aot ooapi-gateway-configurator.core
 

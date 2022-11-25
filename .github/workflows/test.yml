@@ -41,7 +41,7 @@ jobs:
       run: lein check-deps
 
     - name: NVD clojure
-      uses: jomco/nvd-clojure-action@v1
+      uses: jomco/nvd-clojure-action@v2
 
   docker-build:
     runs-on: ubuntu-latest
