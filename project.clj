@@ -24,7 +24,7 @@
                  [ch.qos.logback/logback-classic "1.4.5"]
                  [clj-commons/clj-yaml "1.0.26"]
                  [compojure "1.7.0"]
-                 [datascript "1.3.15"]
+                 [datascript "1.4.0"]
                  [environ "1.2.0"]
                  [hiccup "1.0.5"]
                  [nl.jomco/envopts "0.0.4"]
