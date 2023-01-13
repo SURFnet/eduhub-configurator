@@ -3,16 +3,11 @@
   <!-- See also: https://jeremylong.github.io/DependencyCheck/general/suppression.html -->
   <suppress>
     <notes>
-      file name: snakeyaml-1.33.jar
-
-      We're not vulnerable because the YAML we're processing is under our
-      control.
-
-      See also: https://bitbucket.org/snakeyaml/snakeyaml/issues/531/stackoverflow-oss-fuzz-47081
+      Plenty of snakeyaml and clj-yaml false positives.  All YAML is
+      under our control, so we don't care.
     </notes>
-    <packageUrl regex="true">^pkg:maven/org\.yaml/snakeyaml@.*$</packageUrl>
-    <vulnerabilityName>CVE-2022-38752</vulnerabilityName>
-    <vulnerabilityName>CVE-2022-1471</vulnerabilityName>
+    <packageUrl regex="true">.*(snakeyaml|clj-yaml).*</packageUrl>
+    <vulnerabilityName regex="true">.*</vulnerabilityName>
   </suppress>
   <suppress>
     <notes>
