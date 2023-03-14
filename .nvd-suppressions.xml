@@ -16,4 +16,13 @@
     <filePath regex="true">.*</filePath>
     <cve>CVE-2021-37533</cve>
   </suppress>
+  <suppress>
+    <notes>
+      We're not vulnerable because we don't use FileUpload -- this is
+      a standard dependency of ring / compojure but disabled by
+      default.
+    </notes>
+    <filePath regex="true">.*</filePath>
+    <cve>CVE-2023-24998</cve>
+  </suppress>
 </suppressions>
