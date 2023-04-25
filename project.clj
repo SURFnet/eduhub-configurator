@@ -21,7 +21,7 @@
 
   :dependencies [[ch.qos.logback.contrib/logback-jackson "0.1.5"]
                  [ch.qos.logback.contrib/logback-json-classic "0.1.5"]
-                 [ch.qos.logback/logback-classic "1.4.6"]
+                 [ch.qos.logback/logback-classic "1.4.7"]
                  [clj-commons/clj-yaml "1.0.26"]
                  [compojure "1.7.0"]
                  [datascript "1.4.2"]
@@ -34,14 +34,13 @@
                  [org.clojure/data.json "2.4.0"]
                  [org.clojure/data.xml "0.0.8"]
                  [org.clojure/tools.logging "1.2.4"]
-                 [ring "1.9.6"]
+                 [ring "1.10.0"]
                  [ring-oauth2 "0.2.0"]
                  [ring/ring-defaults "0.3.4"]
-                 [ring/ring-jetty-adapter "1.9.6"]
+                 [ring/ring-jetty-adapter "1.10.0"]
 
                  ;; CVE-2020-36518, CVE-2022-42003, CVE-2022-42004
-                 ;; (pulled in by ring-oauth2 via cheshire)
-                 [com.fasterxml.jackson.core/jackson-databind "2.14.2"]]
+                 [com.fasterxml.jackson.core/jackson-databind "2.15.0"]]
 
   :main ^:skip-aot ooapi-gateway-configurator.core
 
