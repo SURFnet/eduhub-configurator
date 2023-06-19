@@ -21,7 +21,7 @@
 
   :dependencies [[ch.qos.logback.contrib/logback-jackson "0.1.5"]
                  [ch.qos.logback.contrib/logback-json-classic "0.1.5"]
-                 [ch.qos.logback/logback-classic "1.4.7"]
+                 [ch.qos.logback/logback-classic "1.4.8"]
                  [clj-commons/clj-yaml "1.0.26"]
                  [compojure "1.7.0"]
                  [datascript "1.4.2"]
@@ -40,7 +40,7 @@
                  [ring/ring-jetty-adapter "1.10.0"]
 
                  ;; CVE-2020-36518, CVE-2022-42003, CVE-2022-42004
-                 [com.fasterxml.jackson.core/jackson-databind "2.15.0"]]
+                 [com.fasterxml.jackson.core/jackson-databind "2.15.2"]]
 
   :main ^:skip-aot ooapi-gateway-configurator.core
 
@@ -50,7 +50,7 @@
                        :target-path  "target/uberjar"
                        :uberjar-name "ooapi-gateway-configurator.jar"}
              :dev     {:source-paths ["dev"]
-                       :dependencies [[clj-kondo "2023.03.17"]
+                       :dependencies [[clj-kondo "2023.05.26"]
                                       [org.clojure/tools.namespace "1.4.4"]
                                       [ring/ring-json "0.5.1"]
                                       [ring/ring-mock "0.4.0"]]
