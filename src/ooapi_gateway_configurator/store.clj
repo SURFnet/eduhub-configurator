@@ -1,4 +1,4 @@
-;; Copyright (C) 2021 SURFnet B.V.
+;; Copyright (C) 2021, 2023 SURFnet B.V.
 ;;
 ;; This program is free software: you can redistribute it and/or modify it
 ;; under the terms of the GNU General Public License as published by the Free
@@ -31,16 +31,16 @@
   (versioning/checkout yaml-file yaml/parse-string opts))
 
 (defn- yaml->conn
-  [config pipeline]
+  [config gw pipeline]
   (doto (d/create-conn model/schema)
-    (d/transact! (gateway-config/yaml->model config pipeline))))
+    (d/transact! (gateway-config/yaml->model config gw pipeline))))
 
 (defn- fetch
-  [{:keys [gateway-config-yaml work-dir pipeline]}]
+  [{:keys [gateway-config-yaml work-dir pipeline] :as config}]
   (let [{gw     :contents
          current-version :version
          :as             checkout}      (checkout-yaml gateway-config-yaml {:work-dir work-dir})
-        conn (yaml->conn gw pipeline)]
+        conn (yaml->conn config gw pipeline)]
     {:conn conn
      :model @conn
      ::uncommitted?               (versioning/uncommitted? checkout)
@@ -49,11 +49,11 @@
 
 (defn- put
   [model
-   {:keys [gateway-config-yaml work-dir pipeline]}]
+   {:keys [gateway-config-yaml work-dir pipeline] :as config}]
   (let [opts               {:work-dir work-dir}
         {:keys [version
                 contents]} (checkout-yaml gateway-config-yaml opts)
-        new-contents       (gateway-config/model->yaml model contents pipeline)]
+        new-contents       (gateway-config/model->yaml config model contents pipeline)]
     (versioning/stage! gateway-config-yaml version
                        (yaml/generate-string new-contents)
                        opts)))

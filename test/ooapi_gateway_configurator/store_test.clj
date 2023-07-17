@@ -1,4 +1,4 @@
-;; Copyright (C) 2021 SURFnet B.V.
+;; Copyright (C) 2021, 2023 SURFnet B.V.
 ;;
 ;; This program is free software: you can redistribute it and/or modify it
 ;; under the terms of the GNU General Public License as published by the Free
@@ -16,11 +16,13 @@
 (ns ooapi-gateway-configurator.store-test
   (:require [clj-yaml.core :as yaml]
             [clojure.java.io :as io]
+            [clojure.string :as string]
             [clojure.test :refer [deftest testing is use-fixtures]]
             [datascript.core :as d]
             [ooapi-gateway-configurator.model :as model]
             [ooapi-gateway-configurator.store :as store]
             [ooapi-gateway-configurator.store.klist :as klist]
+            [ooapi-gateway-configurator.store.secrets :as secrets]
             [ring.middleware.defaults :refer [site-defaults wrap-defaults]])
   (:import java.io.File))
 
@@ -35,12 +37,15 @@
   [{:keys [gateway-config-file]}]
   (.delete gateway-config-file))
 
+(def secrets-key (-> "test/secret.txt" (io/resource) (slurp) (string/trim)))
+
 (defn wrap
   [handler {:keys [gateway-config-file read-only?] :or {read-only? false}}]
   (-> handler
       (store/wrap {:gateway-config-yaml gateway-config-file
                    :pipeline            "test"
-                   :read-only?          read-only?})
+                   :read-only?          read-only?
+                   :secrets-key         secrets-key})
       (wrap-defaults (-> site-defaults
                          (assoc-in [:params :keywordize] false)
                          (dissoc :security)))))
@@ -52,7 +57,8 @@
     (let [{:keys [gateway-config-file]
            :as   state} (setup)]
       (binding [*config* {:gateway-config-yaml gateway-config-file
-                          :pipeline            "test"}]
+                          :pipeline            "test"
+                          :secrets-key         secrets-key}]
         (f))
       (teardown state))))
 
@@ -91,13 +97,29 @@
                       model
                       n)))))))
 
+(defn- decode-proxy-options
+  [{:keys [secrets-key]} yaml]
+  (update yaml :serviceEndpoints
+          #(->> %
+                (map (fn [[k {:keys [proxyOptionsEncoded] :as v}]]
+                       [k (-> v
+                              (dissoc :proxyOptionsEncoded)
+                              (assoc :proxyOptions (secrets/decode secrets-key proxyOptionsEncoded)))]))
+                (into {}))))
+
 (deftest put
-  (let [yaml (yaml/parse-string (slurp (:gateway-config-yaml *config*)))
+  (let [yaml-before     (yaml/parse-string (slurp (:gateway-config-yaml *config*)))
         {:keys [model]} (#'store/fetch *config*)]
     (testing "round trip does not change the data in the gateway configuration"
       (#'store/put model *config*)
       (#'store/commit! *config*)
-      (is (= yaml (yaml/parse-string (slurp (:gateway-config-yaml *config*)))))))
+
+      (let [decode     (partial decode-proxy-options *config*)
+            yaml-after (yaml/parse-string (slurp (:gateway-config-yaml *config*)))]
+        (is (not= yaml-before yaml-after)
+            "YAML changed because encoded parts are seeded")
+        (is (= (decode yaml-before) (decode yaml-after))
+            "YAML are the same after decoding"))))
 
   (let [{:keys [conn]} (#'store/fetch *config*)
         get-acl (fn []

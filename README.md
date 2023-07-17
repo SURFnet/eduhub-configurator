@@ -107,6 +107,10 @@ For testing, you can use
 The path to the gateway configuration file. This file must exist and
 be readable and writable for the application process.
 
+### `SECRETS_KEY_FILE`
+
+Path to a file containing a 192 bit hexadecimal secret used for encoding and decoding proxy options.
+
 ### `PIPELINE`
 
 The name of the pipeline to be configured in the gateway configuration file.
@@ -213,7 +217,7 @@ above.
 
 # License
 
-Copyright (C) 2021 - 2022 SURFnet B.V.
+Copyright (C) 2021 - 2023 SURFnet B.V.
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by

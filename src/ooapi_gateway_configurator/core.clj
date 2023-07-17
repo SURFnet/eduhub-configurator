@@ -1,4 +1,4 @@
-;; Copyright (C) 2021 SURFnet B.V.
+;; Copyright (C) 2021, 2023 SURFnet B.V.
 ;;
 ;; This program is free software: you can redistribute it and/or modify it
 ;; under the terms of the GNU General Public License as published by the Free
@@ -51,7 +51,11 @@
                          :existing? true :in [:store :work-dir]
                          :default nil]
    :pipeline            ["Name of the pipeline to configure in gateway configuration file" :str
-                         :in [:store :pipeline]]})
+                         :in [:store :pipeline]]
+
+   :secrets-key-file ["File containing 192 bit hexadecimal key to encode/decode secrets"
+                      ::file-content, :existing? true
+                      :in [:store :secrets-key]]})
 
 
 (defmethod envopts/parse ::set
@@ -71,6 +75,13 @@
     (when (and existing? (not (.isDirectory d)))
       [nil (format "'%s' is not a directory" s)]
       [d])))
+
+(defmethod envopts/parse ::file-content
+  [s {:keys [existing?]}]
+  (let [f (io/file s)]
+    (if (and existing? (not (.exists f)))
+      [nil (format "file '%s' does not exist" s)]
+      [(-> f (slurp) (string/trim))])))
 
 (defn mk-config
   [env]

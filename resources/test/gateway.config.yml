@@ -51,25 +51,29 @@ serviceEndpoints:
   Basic.Auth.Backend:
     url: https://example.com/test-backend
     notes: 'Fred <3 Wilma'
-    proxyOptions:
-      auth: fred:wilma
-      proxyTimeout: 31415
+    # proxyOptions:
+    #   auth: fred:wilma
+    #   proxyTimeout: 31415
+    proxyOptionsEncoded: "f9f15ce098d6431fd710864a12136bc5:EV1KB2Vc8AG6DCva8UFHjuesu2gd/In3kJ19PSpOEAiUi+hXBg+FvDK2Kfn2NbSS"
   Oauth-2.Backend:
     url: https://example.com/other-test-backend
-    proxyOptions:
-      oauth2:
-        clientCredentials:
-          tokenEndpoint:
-            url: http://localhost:8084/mock/token
-            params:
-              grant_type: client_credentials
-              client_id: fred
-              client_secret: wilma
+    # proxyOptions:
+    #   oauth2:
+    #     clientCredentials:
+    #       tokenEndpoint:
+    #         url: http://localhost:8084/mock/token
+    #         params:
+    #           grant_type: client_credentials
+    #           client_id: fred
+    #           client_secret: wilma
+    proxyOptionsEncoded: "62cf55f1c2221576f6c3e6b14e661289:WDz6Liw0VcHTmYCwLNz372FqvLRG/rbDFFAJ99V4EZoOlNsgCMNZwuZST0/ja6z0rRiOmyVbld5E4YTKh7nHoAF+K8jvA/2J7lLLS7IID7+iU8IvUnNCxx7BoMut5yuHTR8QO05v8N3Y1gcUiiDRhsfwuOZyqi6Rf+KZjCthcmdvAvaILZnqloLouziy7S03gCZCQcHtXtCb2cy7EvyT8BMDda1B7VdYZc7LQXx/gGeQu8tynRdTSSjXdjur5HsL"
   Api.Key.Backend:
     url: https://example.com/api-key-backend
-    proxyOptions:
-      headers:
-        'Authorization': 'Bearer test-api-key'
+    # proxyOptions:
+    #   headers:
+    #     'Authorization': 'Bearer test-api-key'
+    proxyOptionsEncoded: "8db1d2171c9e5e5dd4f9cb53426a0dbb:gvyIKh4t4eGtkoI0IW18rfTZ6PiMF14aJFKoIydVvnH2mdM0q1AncQvR4waaOVSosPUWZmOPoDgC9vMF1XUuUg=="
+
 policies:
   - basic-auth
   - cors

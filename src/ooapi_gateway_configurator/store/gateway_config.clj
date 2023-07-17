@@ -1,4 +1,4 @@
-;; Copyright (C) 2021 SURFnet B.V.
+;; Copyright (C) 2021, 2023 SURFnet B.V.
 ;;
 ;; This program is free software: you can redistribute it and/or modify it
 ;; under the terms of the GNU General Public License as published by the Free
@@ -16,20 +16,23 @@
 (ns ooapi-gateway-configurator.store.gateway-config
   (:require [clojure.string :as string]
             [datascript.core :as d]
-            [ooapi-gateway-configurator.store.klist :as klist]))
+            [ooapi-gateway-configurator.store.klist :as klist]
+            [ooapi-gateway-configurator.store.secrets :as secrets]))
 
 (defn yaml->model
   "Parse the gateway config `yaml` as a collection of entities.
 
   The returned entity collection can be directly transacted into the
   model database."
-  [{:keys [serviceEndpoints pipelines] :as config} pipeline]
+  [{:keys [secrets-key]}
+   {:keys [serviceEndpoints pipelines] :as gw}
+   pipeline]
   (let [{:keys [policies apiEndpoints]} (get pipelines (keyword pipeline))
         api                             (-> apiEndpoints first keyword)]
     (-> []
         (into (map (fn [p]
                      {:path/spec p})
-                   (-> config :apiEndpoints api :paths)))
+                   (-> gw :apiEndpoints api :paths)))
         (into (map (fn [[n {:keys [notes passwordSalt passwordHash]}]]
                      (cond-> {:app/id (name n) ;; name is a keyword when read from the yaml
                               :app/password-salt passwordSalt
@@ -37,12 +40,16 @@
                        ;; datomic/datascript do not allow nil values
                        (seq notes) (assoc :app/notes notes)))
                    (klist/get-in policies [:gatekeeper :action :apps])))
-        (into (map (fn [[n {:keys [proxyOptions url notes]}]]
+        (into (map (fn [[n {:keys [proxyOptionsEncoded url notes]}]]
                      (cond-> {:institution/id (name n) ;; name is a keyword when read from the yaml
                               :institution/url url}
                        ;; datomic/datascript do not allow nil values
-                       (seq notes) (assoc :institution/notes notes)
-                       (some? proxyOptions) (assoc :institution/proxy-options proxyOptions)))
+                       (seq notes)
+                       (assoc :institution/notes notes)
+
+                       (some? proxyOptionsEncoded)
+                       (assoc :institution/proxy-options
+                              (secrets/decode secrets-key proxyOptionsEncoded))))
                    serviceEndpoints))
         (into (mapcat (fn [{:keys [app endpoints]}]
                         (map (fn [{:keys [endpoint paths]}]
@@ -70,13 +77,13 @@
 
 (defn model->yaml
   "Update the gateway config `yaml-contents` with configuration from `model`."
-  [model yaml-contents pipeline]
+  [{:keys [secrets-key]} model yaml-contents pipeline]
   (-> yaml-contents
       (assoc :serviceEndpoints
              (reduce (fn ->endpoint [res [{:institution/keys [id url notes proxy-options]}]]
                        (assert (not (string/blank? id)))
-                       (assoc res id (cond-> {:url          url
-                                              :proxyOptions proxy-options}
+                       (assoc res id (cond-> {:url                 url
+                                              :proxyOptionsEncoded (secrets/encode secrets-key proxy-options)}
                                        (seq notes) (assoc :notes notes))))
                      {}
                      (d/q '[:find (pull ?e [*]) :where [?e :institution/id _]] model)))
