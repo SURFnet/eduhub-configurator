@@ -41,7 +41,7 @@
                  [ring/ring-jetty-adapter "1.10.0"
                   :exclusions [org.eclipse.jetty/jetty-server]]
                  ;; CVE-2023-40167
-                 [org.eclipse.jetty/jetty-server "9.4.52.v20230823" :upgrade :security]
+                 [org.eclipse.jetty/jetty-server "9.4.52.v20230823" :upgrade :keep-this-version]
 
                  ;; CVE-2020-36518, CVE-2022-42003, CVE-2022-42004
                  [com.fasterxml.jackson.core/jackson-databind "2.15.2"]]
@@ -60,6 +60,6 @@
                                       [ring/ring-mock "RELEASE"]]
                        :plugins      [[lein-ancient "RELEASE"]]
                        :aliases      {"lint"  ["run" "-m" "clj-kondo.main" "--lint" "src"]
-                                      "check-deps" ["ancient" "check" ":no-profiles" ":exclude" "security"]}}}
+                                      "check-deps" ["ancient" "check" ":no-profiles" ":exclude" "keep-this-version"]}}}
 
   :repl-options {:init-ns user})
