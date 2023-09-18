@@ -54,11 +54,11 @@
                        :target-path  "target/uberjar"
                        :uberjar-name "ooapi-gateway-configurator.jar"}
              :dev     {:source-paths ["dev"]
-                       :dependencies [[clj-kondo "2023.09.07"]
-                                      [org.clojure/tools.namespace "1.4.4"]
-                                      [ring/ring-json "0.5.1"]
-                                      [ring/ring-mock "0.4.0"]]
-                       :plugins      [[lein-ancient "0.7.0"]]
+                       :dependencies [[clj-kondo "RELEASE"]
+                                      [org.clojure/tools.namespace "RELEASE"]
+                                      [ring/ring-json "RELEASE"]
+                                      [ring/ring-mock "RELEASE"]]
+                       :plugins      [[lein-ancient "RELEASE"]]
                        :aliases      {"lint"  ["run" "-m" "clj-kondo.main" "--lint" "src"]
                                       "check-deps" ["ancient" "check" ":no-profiles" ":exclude" "security"]}}}
 
