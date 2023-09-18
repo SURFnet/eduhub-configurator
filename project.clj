@@ -37,7 +37,11 @@
                  [ring "1.10.0"]
                  [ring-oauth2 "0.2.0"]
                  [ring/ring-defaults "0.3.4"]
-                 [ring/ring-jetty-adapter "1.10.0"]
+
+                 [ring/ring-jetty-adapter "1.10.0"
+                  :exclusions [org.eclipse.jetty/jetty-server]]
+                 ;; CVE-2023-40167
+                 [org.eclipse.jetty/jetty-server "9.4.52.v20230823"]
 
                  ;; CVE-2020-36518, CVE-2022-42003, CVE-2022-42004
                  [com.fasterxml.jackson.core/jackson-databind "2.15.2"]]
