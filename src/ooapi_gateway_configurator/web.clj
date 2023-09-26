@@ -27,6 +27,7 @@
             [ooapi-gateway-configurator.network :as network]
             [ooapi-gateway-configurator.session :as session]
             [ooapi-gateway-configurator.store :as store]
+            [ring.middleware.anti-forgery :refer [wrap-anti-forgery]]
             [ring.middleware.defaults :refer [site-defaults wrap-defaults]]
             [ring.util.response :as response]))
 
@@ -86,10 +87,14 @@
       (auth-pages/wrap-auth-pages)
       (auth/wrap-authentication (:auth config))
 
+      (wrap-anti-forgery {:strategy (session/mk-strategy)})
       (wrap-defaults (-> config
                          (get :site-defaults site-defaults)
                          (assoc-in [:params :keywordize] false)
-                         (assoc-in [:session :store] (session/mk-store))))
+                         (assoc-in [:session :store] (session/mk-store))
+
+                         ;; manually added with other strategy
+                         (assoc-in [:security :anti-forgery] false)))
 
       ;; Do not allow inline style/script but anything loaded from
       ;; this origin is fine.

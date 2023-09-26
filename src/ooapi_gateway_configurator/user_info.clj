@@ -71,10 +71,11 @@
     (let [user-info (fetch-user-info request profiles)]
       (logging/with-mdc {:user-id (get-in user-info [:conext :sub])}
         (let [response (-> request
-                            (assoc :oauth2/user-info user-info)
-                            (handler))]
-          (assoc response
-                 :session (assoc (or (:session response)
-                                     (:session request))
-                                 ::user-info user-info)
-                 :oauth2/user-info user-info))))))
+                           (assoc :oauth2/user-info user-info)
+                           (handler))]
+          (if (empty? user-info)
+            response
+            (-> response
+                (assoc :session (:session response (:session request)))
+                (assoc-in [:session ::user-info] user-info)
+                (assoc :oauth2/user-info user-info))))))))

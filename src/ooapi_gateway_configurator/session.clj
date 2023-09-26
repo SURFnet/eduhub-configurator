@@ -47,3 +47,38 @@
   for that session."
   [& {:keys [ttl] :or {ttl (* 1000 60 30)}}]
   (->Store (atom (cache/ttl-cache-factory {} :ttl ttl))))
+
+(defn- session-token [request]
+  (get-in request [:session ::anti-forgery-token]))
+
+;; Slightly adapted version of default
+;; ring.middleware.anti-forgery.session.  This version does not put a
+;; token on the session when there's not already a session.
+(deftype Strategy []
+  strategy/Strategy
+  (get-token [_ request]
+    (or (session-token request)
+        (random/base64 60)))
+
+  (valid-token? [_ request token]
+    (when-let [stored-token (session-token request)]
+      (crypto/eq? token stored-token)))
+
+  (write-token [_ request response token]
+    (if (empty? (:session response (:session request)))
+      ;; only write to session when we already have one
+      response
+      (let [old-token (session-token request)]
+        (if (= old-token token)
+          response
+          (-> response
+              (assoc :session (:session response (:session request)))
+              (assoc-in [:session ::anti-forgery-token] token)))))))
+
+(defn mk-strategy
+  "Return a strategy for anti-forgery/wrap-anti-forgery middleware.
+
+  This version is based on the default session stategy but which does
+  nothing when the user does not already have a session yet."
+  []
+  (->Strategy))
