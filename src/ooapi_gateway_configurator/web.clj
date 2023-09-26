@@ -49,21 +49,31 @@
   [req]
   (not-found "Oeps, nothing here.." req))
 
-(defn mk-handler
+(defn mk-private-handler
+  "Handler only served when user logged in and member of given groups."
   [config]
-  (routes
-   (wrap-routes
-    (routes (GET "/" req (layout (main-page req) req))
+  (wrap-routes
+   (routes (GET "/" req (layout (main-page req) req))
             #'applications/handler
             #'institutions/handler
             #'access-control-lists/handler
-            #'network/handler)
-    auth/wrap-member-of (get-in config [:auth :group-ids]))
+            #'network/handler
+            (store/mk-handler (:store config)))
+   auth/wrap-member-of (get-in config [:auth :group-ids])))
+
+(defn mk-handler
+  [config]
+  (routes
+   (mk-private-handler config)
+
    (GET "/userinfo" req
         (-> (response/response (pr-str (:oauth2/user-info req)))
             (response/content-type "text/plain")))
+
    auth/logout-handler
+
    (resources "/" {:root "public"})
+
    not-found-handler))
 
 (defn wrap-csp
@@ -84,6 +94,7 @@
 
       (store/wrap (:store config))
 
+      ;; note: the below middleware does not enforce security but only supports it
       (auth-pages/wrap-auth-pages)
       (auth/wrap-authentication (:auth config))
 

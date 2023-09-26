@@ -17,6 +17,7 @@
   (:require [clj-yaml.core :as yaml]
             [clojure.java.io :as io]
             [clojure.tools.logging :as log]
+            [compojure.core :refer [POST]]
             [datascript.core :as d]
             [ooapi-gateway-configurator.form :as form]
             [ooapi-gateway-configurator.html-time :as html-time]
@@ -121,54 +122,57 @@
     [:div.commit-status
      "Configuration error? No value for " ::last-commit "."]))
 
+(defn mk-handler [{:keys [gateway-config-yaml work-dir]}]
+  (POST "/versioning" {{:strs [commit reset timestamp current-version]} :params}
+        (merge
+         (assoc (response/redirect "/" :see-other)
+                ::action true)
+         (cond
+           commit
+           (do (versioning/commit! gateway-config-yaml {:work-dir work-dir})
+               {:flash "Deployed changes"})
+
+           (and reset (or (= "current" timestamp) (nil? timestamp)))
+           (do (versioning/unstage! gateway-config-yaml {:work-dir work-dir})
+               {:flash "Discarded changes — reset to currently deployed version."})
+
+           (and reset timestamp)
+           (let [timestamp (-> timestamp
+                               Long/parseLong
+                               java.time.Instant/ofEpochMilli)]
+             (if (versioning/reset! gateway-config-yaml
+                                    current-version
+                                    timestamp
+                                    {:work-dir work-dir})
+               {:flash (str "Discarded changes — reset to version of " (html-time/human-time timestamp))}
+               {:flash "Reset failed!"}))))))
+
 ;; TODO: this function is doing too much. Extract the handling of `model` and `conn`?
 (defn wrap
   "Middleware to allow reading and writing configuration."
-  [app {:keys [gateway-config-yaml work-dir read-only?] :as config}]
-  (fn [{:keys                                            [request-method uri]
-        {:strs [commit reset timestamp current-version]} :params
-        :as                                              req}]
-    (if (and (= :post request-method)
-             (= "/versioning" uri))
-      (merge
-       (response/redirect "/" :see-other)
-       (cond
-         commit
-         (do (versioning/commit! gateway-config-yaml {:work-dir work-dir})
-             {:flash "Deployed changes"})
+  [app {:keys [read-only?] :as config}]
+  (fn [req]
+    (let [{:keys [model conn] :as cur} (fetch config)
+          res (-> req
+                  ;; only provide read-only model - transactions
+                  ;; should be put on the response
+                  (into (dissoc cur :conn))
+                  (assoc ::last-commit (last-commit config))
+                  (app))
+          ;; create transactions from events
+          res (assoc res ::model/tx
+                     (into [] (mapcat #(model/event->tx model %) (:events res))))]
 
-         (and reset (or (= "current" timestamp) (nil? timestamp)))
-         (do (versioning/unstage! gateway-config-yaml {:work-dir work-dir})
-             {:flash "Discarded changes — reset to currently deployed version."})
+      (doseq [e (:events res)]
+        (logging/with-mdc e (log/info (str "event" (:event/type e)))))
 
-         (and reset timestamp)
-         (let [timestamp (-> timestamp
-                             Long/parseLong
-                             java.time.Instant/ofEpochMilli)]
-           (if (versioning/reset! gateway-config-yaml
-                                  current-version
-                                  timestamp
-                                  {:work-dir work-dir})
-             {:flash (str "Discarded changes — reset to version of " (html-time/human-time timestamp))}
-             {:flash "Reset failed!"}))))
-      (let [{:keys [model conn] :as cur} (fetch config)
-            res (-> req
-                    ;; only provide read-only model - transactions
-                    ;; should be put on the response
-                    (into (dissoc cur :conn))
-                    (assoc ::last-commit (last-commit config))
-                    app)
-            ;; create transactions from events
-            res (assoc res ::model/tx
-                       (into [] (mapcat #(model/event->tx model %) (:events res))))]
-        (doseq [e (:events res)]
-          (logging/with-mdc e (log/info (str "event" (:event/type e)))))
-        (when-not read-only?
-          (when-let [tx (::model/tx res)]
-            (d/transact! conn tx))
+      (when-not read-only?
+        (when-let [tx (::model/tx res)]
+          (d/transact! conn tx))
 
-          (let [new-model @conn]
-            (when (and (seq new-model)
-                       (not= new-model model))
-              (put new-model config))))
-        res))))
+        (let [new-model @conn]
+          (when (and (seq new-model)
+                     (not= new-model model))
+            (put new-model config))))
+
+      res)))

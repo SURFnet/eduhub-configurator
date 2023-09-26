@@ -24,11 +24,16 @@
 
 (def app (-> {:auth {:group-ids #{"my-group"}}}
              (#'web/mk-handler)
-             (wrap-defaults (assoc-in site-defaults [:params :keywordize] false))))
+             (wrap-defaults (-> site-defaults
+                                (assoc-in [:params :keywordize] false)
+                                (assoc-in [:security :anti-forgery] false)))))
+
+(defn assoc-user-info [req]
+  (assoc req
+         :oauth2/user-info {:conext {:edumember_is_member_of ["my-group"]}}))
 
 (defn do-get [uri]
-  (app (-> (request :get uri)
-           (assoc :oauth2/user-info {:conext {:edumember_is_member_of ["my-group"]}}))))
+  (app (-> (request :get uri) (assoc-user-info))))
 
 (deftest handler
   (testing "GET /"
@@ -38,4 +43,27 @@
 
   (testing "Not found"
     (is (= http-status/not-found
-           (:status (do-get "/does-not-exist"))))))
+           (:status (do-get "/does-not-exist")))))
+
+  (testing "Authorization"
+    (let [f (fn [& args]
+              (-> (apply request args)
+                  (app)
+                  :status))]
+      (is (= http-status/ok (f :get "/userinfo")))
+      (is (= http-status/unauthorized (f :get "/")))
+      (is (= http-status/unauthorized (f :get "/applications/")))
+      (is (= http-status/unauthorized (f :get "/institutions/")))
+      (is (= http-status/unauthorized (f :get "/network/")))
+      (is (= http-status/unauthorized (f :post "/versioning"))))
+    (let [f (fn [& args]
+              (-> (apply request args)
+                  (assoc-user-info)
+                  (app)
+                  :status))]
+      (is (= http-status/ok (f :get "/userinfo")))
+      (is (= http-status/ok (f :get "/")))
+      (is (= http-status/ok (f :get "/applications/")))
+      (is (= http-status/ok (f :get "/institutions/")))
+      (is (= http-status/ok (f :get "/network/")))
+      (is (= http-status/see-other (f :post "/versioning"))))))
