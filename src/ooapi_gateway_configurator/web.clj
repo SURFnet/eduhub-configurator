@@ -25,6 +25,7 @@
             [ooapi-gateway-configurator.institutions :as institutions]
             [ooapi-gateway-configurator.logging :as logging]
             [ooapi-gateway-configurator.network :as network]
+            [ooapi-gateway-configurator.session :as session]
             [ooapi-gateway-configurator.store :as store]
             [ring.middleware.defaults :refer [site-defaults wrap-defaults]]
             [ring.util.response :as response]))
@@ -88,7 +89,7 @@
       (wrap-defaults (-> config
                          (get :site-defaults site-defaults)
                          (assoc-in [:params :keywordize] false)
-                         (assoc-in [:session :cookie-attrs :same-site] :lax)))
+                         (assoc-in [:session :store] (session/mk-store))))
 
       ;; Do not allow inline style/script but anything loaded from
       ;; this origin is fine.

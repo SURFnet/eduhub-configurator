@@ -34,6 +34,7 @@
                  [org.clojure/data.json "2.4.0"]
                  [org.clojure/data.xml "0.0.8"]
                  [org.clojure/tools.logging "1.2.4"]
+                 [org.clojure/core.cache "1.0.225"]
                  [ring "1.10.0"]
                  [ring-oauth2 "0.2.2"]
                  [ring/ring-defaults "0.4.0"]
