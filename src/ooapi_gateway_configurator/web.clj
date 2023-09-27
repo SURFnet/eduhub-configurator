@@ -16,6 +16,7 @@
 (ns ooapi-gateway-configurator.web
   (:require [compojure.core :refer [GET routes wrap-routes]]
             [compojure.route :refer [resources]]
+            [nl.jomco.http-status-codes :as http-status]
             [nl.jomco.ring-trace-context :as ring-trace-context]
             [ooapi-gateway-configurator.access-control-lists :as access-control-lists]
             [ooapi-gateway-configurator.applications :as applications]
@@ -87,6 +88,21 @@
                      value
                      default-value))))))
 
+(defn- anti-forgery-error-handler
+  [{:keys [session] :as req}]
+  (if (empty? session)
+    {:status  http-status/unauthorized
+     :headers {"Content-Type" "text/html"}
+     :body    (layout
+               [:div [:h3 "Session expired"]
+                [:p "Please use the \"Log in\" button to login again."]]
+               req)}
+    {:status  http-status/forbidden
+     :headers {"Content-Type" "text/html"}
+     :body    (layout
+               [:div [:h3 "Invalid anti-forgery token"]]
+               req)}))
+
 (defn mk-app
   [config]
   (-> config
@@ -98,7 +114,9 @@
       (auth-pages/wrap-auth-pages)
       (auth/wrap-authentication (:auth config))
 
-      (wrap-anti-forgery {:strategy (session/mk-strategy)})
+      (wrap-anti-forgery {:strategy      (session/mk-strategy)
+                          :error-handler anti-forgery-error-handler})
+
       (wrap-defaults (-> config
                          (get :site-defaults site-defaults)
                          (assoc-in [:params :keywordize] false)
