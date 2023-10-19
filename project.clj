@@ -41,8 +41,8 @@
 
                  [ring/ring-jetty-adapter "1.10.0"
                   :exclusions [org.eclipse.jetty/jetty-server]]
-                 ;; CVE-2023-40167
-                 [org.eclipse.jetty/jetty-server "9.4.52.v20230823" :upgrade :keep-this-version]
+                 ;; CVE-2023-40167, CVE-2023-44487
+                 [org.eclipse.jetty/jetty-server "9.4.53.v20231009" :upgrade :keep-this-version]
 
                  ;; CVE-2020-36518, CVE-2022-42003, CVE-2022-42004
                  [com.fasterxml.jackson.core/jackson-databind "2.15.2" :upgrade :keep-this-version]]
