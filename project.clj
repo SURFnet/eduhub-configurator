@@ -24,7 +24,7 @@
                  [ch.qos.logback/logback-classic "1.4.11"]
                  [clj-commons/clj-yaml "1.0.27"]
                  [compojure "1.7.0"]
-                 [datascript "1.5.3"]
+                 [datascript "1.5.4"]
                  [environ "1.2.0"]
                  [hiccup "1.0.5"]
                  [nl.jomco/envopts "0.0.4"]
@@ -45,7 +45,7 @@
                  [org.eclipse.jetty/jetty-server "9.4.52.v20230823" :upgrade :keep-this-version]
 
                  ;; CVE-2020-36518, CVE-2022-42003, CVE-2022-42004
-                 [com.fasterxml.jackson.core/jackson-databind "2.15.2"]]
+                 [com.fasterxml.jackson.core/jackson-databind "2.15.2" :upgrade :keep-this-version]]
 
   :main ^:skip-aot ooapi-gateway-configurator.core
 
