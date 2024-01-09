@@ -19,33 +19,35 @@
             :url  "https://www.gnu.org/licenses/gpl-3.0.en.html"}
   :url "https://github.com/SURFnet/ooapi-gateway-configurator"
 
-  :dependencies [[ch.qos.logback.contrib/logback-jackson "0.1.5"]
-                 [ch.qos.logback.contrib/logback-json-classic "0.1.5"]
-                 [ch.qos.logback/logback-classic "1.4.14"]
-                 [clj-commons/clj-yaml "1.0.27"]
-                 [compojure "1.7.0"]
-                 [datascript "1.5.4"]
+  :dependencies [[org.clojure/clojure "1.11.1"]
+
+                 ;; setup
                  [environ "1.2.0"]
-                 [hiccup "1.0.5"]
                  [nl.jomco/envopts "0.0.4"]
+
+                 ;; web
+                 [compojure "1.7.0"]
+                 [hiccup "1.0.5"]
+                 [ring-oauth2 "0.2.2"] ;; TODO waarom kan die?
+                 [ring/ring-core "1.11.0"]
+                 [ring/ring-defaults "0.4.0"]
+                 [ring/ring-jetty-adapter "1.11.0"]
                  [nl.jomco/clj-http-status-codes "0.1"]
                  [nl.jomco/ring-trace-context "0.0.8"]
-                 [org.clojure/clojure "1.11.1"]
-                 [org.clojure/data.json "2.4.0"]
-                 [org.clojure/data.xml "0.0.8"]
-                 [org.clojure/tools.logging "1.2.4"]
+
+                 ;; data
+                 [org.clojure/data.json "2.5.0"]
                  [org.clojure/core.cache "1.0.225"]
-                 [ring "1.10.0"]
-                 [ring-oauth2 "0.2.2"]
-                 [ring/ring-defaults "0.4.0"]
+                 [clj-commons/clj-yaml "1.0.27"]
+                 [datascript "1.6.1"]
 
-                 [ring/ring-jetty-adapter "1.10.0"
-                  :exclusions [org.eclipse.jetty/jetty-server]]
-                 ;; CVE-2023-40167, CVE-2023-44487
-                 [org.eclipse.jetty/jetty-server "9.4.53.v20231009" :upgrade :keep-this-version]
-
-                 ;; CVE-2020-36518, CVE-2022-42003, CVE-2022-42004
-                 [com.fasterxml.jackson.core/jackson-databind "2.15.2" :upgrade :keep-this-version]]
+                 ;; logging
+                 [org.clojure/tools.logging "1.2.4"]
+                 [ch.qos.logback.contrib/logback-jackson "0.1.5"]
+                 [ch.qos.logback.contrib/logback-json-classic "0.1.5"]
+                 [ch.qos.logback/logback-classic "1.4.14"]
+                 [com.fasterxml.jackson.core/jackson-core "2.16.1"]
+                 [com.fasterxml.jackson.core/jackson-databind "2.16.1"]]
 
   :main ^:skip-aot ooapi-gateway-configurator.core
 
