@@ -26,7 +26,7 @@
                  [nl.jomco/envopts "0.0.4"]
 
                  ;; web
-                 [compojure "1.7.0"]
+                 [compojure "1.7.1"]
                  [hiccup "1.0.5"]
                  [ring-oauth2 "0.2.2"] ;; TODO waarom kan die?
                  [ring/ring-core "1.11.0"]

@@ -7,10 +7,10 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - name: Cache lein project dependencies
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: "~/.m2/repository"
         key: "${{ runner.os }}-clojure-${{ hashFiles('**/project.clj') }}"
@@ -32,10 +32,10 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - name: Cache lein project dependencies
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: "~/.m2/repository"
         key: "${{ runner.os }}-clojure-${{ hashFiles('**/project.clj') }}"
@@ -44,14 +44,14 @@ jobs:
       run: lein check-deps
 
     - name: NVD clojure
-      uses: jomco/nvd-clojure-action@v2
+      uses: jomco/nvd-clojure-action@v3
 
   docker-build:
     runs-on: ubuntu-latest
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - name: Run docker build
       run: docker build .
