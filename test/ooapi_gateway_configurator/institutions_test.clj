@@ -21,7 +21,7 @@
             [ooapi-gateway-configurator.store-test :as store-test]
             [ring.mock.request :refer [request]]))
 
-(def ^:dynamic *app*)
+(def ^:dynamic *app* nil)
 
 (use-fixtures :each
   (fn [f]

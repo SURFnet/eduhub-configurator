@@ -22,7 +22,7 @@
             [ring.middleware.nested-params :refer [wrap-nested-params]]
             [ring.mock.request :refer [request]]))
 
-(def ^:dynamic *app*)
+(def ^:dynamic *app* nil)
 
 (use-fixtures :each
   (fn [f]

@@ -50,7 +50,7 @@
                          (assoc-in [:params :keywordize] false)
                          (dissoc :security)))))
 
-(def ^:dynamic *config*)
+(def ^:dynamic *config* nil)
 
 (use-fixtures :each
   (fn [f]
