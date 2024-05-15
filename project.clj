@@ -19,7 +19,7 @@
             :url  "https://www.gnu.org/licenses/gpl-3.0.en.html"}
   :url "https://github.com/SURFnet/ooapi-gateway-configurator"
 
-  :dependencies [[org.clojure/clojure "1.11.2"]
+  :dependencies [[org.clojure/clojure "1.11.3"]
 
                  ;; setup
                  [environ "1.2.0"]
@@ -30,7 +30,7 @@
                  [hiccup "1.0.5"]
                  [ring-oauth2 "0.2.2"] ;; TODO waarom kan die?
                  [ring/ring-core "1.12.1"]
-                 [ring/ring-defaults "0.4.0"]
+                 [ring/ring-defaults "0.5.0"]
                  [ring/ring-jetty-adapter "1.12.1"]
                  [nl.jomco/clj-http-status-codes "0.1"]
                  [nl.jomco/ring-trace-context "0.0.8"]
@@ -39,15 +39,15 @@
                  [org.clojure/data.json "2.5.0"]
                  [org.clojure/core.cache "1.1.234"]
                  [clj-commons/clj-yaml "1.0.27"]
-                 [datascript "1.6.3"]
+                 [datascript "1.6.5"]
 
                  ;; logging
                  [org.clojure/tools.logging "1.3.0"]
                  [ch.qos.logback.contrib/logback-jackson "0.1.5"]
                  [ch.qos.logback.contrib/logback-json-classic "0.1.5"]
-                 [ch.qos.logback/logback-classic "1.5.4"]
-                 [com.fasterxml.jackson.core/jackson-core "2.17.0"]
-                 [com.fasterxml.jackson.core/jackson-databind "2.17.0"]]
+                 [ch.qos.logback/logback-classic "1.5.6"]
+                 [com.fasterxml.jackson.core/jackson-core "2.17.1"]
+                 [com.fasterxml.jackson.core/jackson-databind "2.17.1"]]
 
   :main ^:skip-aot ooapi-gateway-configurator.core
 
