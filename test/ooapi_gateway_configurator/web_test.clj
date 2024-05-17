@@ -20,8 +20,6 @@
             [ring.middleware.defaults :refer [site-defaults wrap-defaults]]
             [ring.mock.request :refer [request]]))
 
-(def ^:dynamic *app*)
-
 (def app (-> {:auth {:group-ids #{"my-group"}}}
              (#'web/mk-handler)
              (wrap-defaults (-> site-defaults
