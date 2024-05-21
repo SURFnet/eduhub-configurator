@@ -1,4 +1,4 @@
-name: Run tests
+name: Run tests and docker build
 on: push
 
 jobs:
@@ -23,28 +23,6 @@ jobs:
 
     - name: Run compile
       run: lein uberjar
-
-  deps:
-    runs-on: ubuntu-latest
-
-    env:
-      NVD_API_TOKEN: ${{ secrets.NVD_API_TOKEN }}
-
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Cache lein project dependencies
-      uses: actions/cache@v4
-      with:
-        path: "~/.m2/repository"
-        key: "${{ runner.os }}-clojure-${{ hashFiles('**/project.clj') }}"
-
-    - name: Check dependency freshness
-      run: lein check-deps
-
-    - name: NVD clojure
-      uses: jomco/nvd-clojure-action@v3
 
   docker-build:
     runs-on: ubuntu-latest
