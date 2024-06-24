@@ -28,10 +28,10 @@
                  ;; web
                  [compojure "1.7.1"]
                  [hiccup "1.0.5"]
-                 [ring-oauth2 "0.2.2"] ;; TODO waarom kan die?
-                 [ring/ring-core "1.12.1"]
+                 [ring-oauth2 "0.2.2"]
+                 [ring/ring-core "1.12.2"]
                  [ring/ring-defaults "0.5.0"]
-                 [ring/ring-jetty-adapter "1.12.1"]
+                 [ring/ring-jetty-adapter "1.12.2"]
                  [nl.jomco/clj-http-status-codes "0.1"]
                  [nl.jomco/ring-trace-context "0.0.8"]
 
@@ -39,7 +39,7 @@
                  [org.clojure/data.json "2.5.0"]
                  [org.clojure/core.cache "1.1.234"]
                  [clj-commons/clj-yaml "1.0.27"]
-                 [datascript "1.6.5"]
+                 [datascript "1.7.1"]
 
                  ;; logging
                  [org.clojure/tools.logging "1.3.0"]
