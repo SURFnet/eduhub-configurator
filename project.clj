@@ -19,7 +19,7 @@
             :url  "https://www.gnu.org/licenses/gpl-3.0.en.html"}
   :url "https://github.com/SURFnet/ooapi-gateway-configurator"
 
-  :dependencies [[org.clojure/clojure "1.11.3"]
+  :dependencies [[org.clojure/clojure "1.11.4"]
 
                  ;; setup
                  [environ "1.2.0"]
@@ -39,7 +39,7 @@
                  [org.clojure/data.json "2.5.0"]
                  [org.clojure/core.cache "1.1.234"]
                  [clj-commons/clj-yaml "1.0.27"]
-                 [datascript "1.7.2"]
+                 [datascript "1.7.3"]
 
                  ;; logging
                  [org.clojure/tools.logging "1.3.0"]
