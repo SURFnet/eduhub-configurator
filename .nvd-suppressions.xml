@@ -4,4 +4,9 @@
     <notes>Using clojure higher than 1.9.0 and not earlier as implied by some dependencies.</notes>
     <cve>CVE-2017-20189</cve>
   </suppress>
+
+  <suppress>
+    <notes>Not affected, not using basic authentication.</notes>
+    <cve>CVE-2024-6763</cve>
+  </suppress>
 </suppressions>
