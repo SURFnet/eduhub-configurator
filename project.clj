@@ -45,7 +45,8 @@
                  [org.clojure/tools.logging "1.3.0"]
                  [ch.qos.logback.contrib/logback-jackson "0.1.5"]
                  [ch.qos.logback.contrib/logback-json-classic "0.1.5"]
-                 [ch.qos.logback/logback-classic "1.5.17"]]
+                 [ch.qos.logback/logback-classic "1.5.17"]
+                 [com.fasterxml.jackson.core/jackson-databind "2.18.3"]]
 
   :main ^:skip-aot ooapi-gateway-configurator.core
 
