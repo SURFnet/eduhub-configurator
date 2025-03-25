@@ -26,14 +26,15 @@
                  [nl.jomco/envopts "0.0.5"]
 
                  ;; web
+                 [ring/ring-core "1.13.1"]
+                 [ring/ring-defaults "0.6.0"]
+                 [ring/ring-jetty-adapter "1.13.1"]
+                 [nl.jomco/clj-http-status-codes "0.1"]
+                 [nl.jomco/ring-trace-context "0.0.8"]
                  [compojure "1.7.1"]
                  [hiccup "1.0.5"]
                  [ring-oauth2 "0.3.0"]
-                 [ring/ring-core "1.13.0"]
-                 [ring/ring-defaults "0.6.0"]
-                 [ring/ring-jetty-adapter "1.13.0"]
-                 [nl.jomco/clj-http-status-codes "0.1"]
-                 [nl.jomco/ring-trace-context "0.0.8"]
+
 
                  ;; data
                  [org.clojure/data.json "2.5.1"]
@@ -45,7 +46,8 @@
                  [org.clojure/tools.logging "1.3.0"]
                  [ch.qos.logback.contrib/logback-jackson "0.1.5"]
                  [ch.qos.logback.contrib/logback-json-classic "0.1.5"]
-                 [ch.qos.logback/logback-classic "1.5.17"]]
+                 [ch.qos.logback/logback-classic "1.5.18"]
+                 [com.fasterxml.jackson.core/jackson-databind "2.18.3"]]
 
   :main ^:skip-aot ooapi-gateway-configurator.core
 
