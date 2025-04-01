@@ -1,11 +1,11 @@
-FROM clojure:temurin-17-lein-2.11.2-alpine as builder
+FROM clojure:temurin-21-lein-2.11.2-alpine as builder
 
 RUN mkdir /app
 WORKDIR /app
 COPY . /app/
 RUN lein uberjar
 
-FROM gcr.io/distroless/java17-debian12
+FROM gcr.io/distroless/java21-debian12
 COPY --from=builder /app/target/uberjar/ooapi-gateway-configurator.jar /ooapi-gateway-configurator.jar
 COPY configurator.production.logback.xml /
 COPY HealthCheck.java /
