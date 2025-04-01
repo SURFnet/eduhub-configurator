@@ -23,18 +23,17 @@
 
                  ;; setup
                  [environ "1.2.0"]
-                 [nl.jomco/envopts "0.0.5"]
+                 [nl.jomco/envopts "0.0.6"]
 
                  ;; web
-                 [ring/ring-core "1.13.1"]
+                 [ring/ring-core "1.14.1"]
                  [ring/ring-defaults "0.6.0"]
-                 [ring/ring-jetty-adapter "1.13.1"]
+                 [ring/ring-jetty-adapter "1.14.1"]
                  [nl.jomco/clj-http-status-codes "0.1"]
                  [nl.jomco/ring-trace-context "0.0.8"]
                  [compojure "1.7.1"]
                  [hiccup "1.0.5"]
                  [ring-oauth2 "0.3.0"]
-
 
                  ;; data
                  [org.clojure/data.json "2.5.1"]
