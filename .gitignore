@@ -3,3 +3,5 @@
 /.lein-failures
 /.envrc
 /.lsp/
+/lein-deps.edn
+/.cpcache/
