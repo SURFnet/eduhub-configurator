@@ -46,7 +46,7 @@
                  [ch.qos.logback.contrib/logback-jackson "0.1.5"]
                  [ch.qos.logback.contrib/logback-json-classic "0.1.5"]
                  [ch.qos.logback/logback-classic "1.5.18"]
-                 [com.fasterxml.jackson.core/jackson-databind "2.18.3"]]
+                 [com.fasterxml.jackson.core/jackson-databind "2.19.0"]]
 
   :main ^:skip-aot ooapi-gateway-configurator.core
 
