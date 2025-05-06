@@ -39,7 +39,7 @@
                  [org.clojure/data.json "2.5.1"]
                  [org.clojure/core.cache "1.1.234"]
                  [clj-commons/clj-yaml "1.0.29"]
-                 [datascript "1.7.4"]
+                 [datascript "1.7.5"]
 
                  ;; logging
                  [org.clojure/tools.logging "1.3.0"]
