@@ -1,3 +1,7 @@
+## ⚠ END OF LIFE ⚠
+
+This codebase will no longer be maintained.
+
 # Surf OOAPI Gateway Configurator
 
 ## Development dependencies
